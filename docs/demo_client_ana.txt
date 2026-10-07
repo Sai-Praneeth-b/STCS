@@ -1,0 +1,118 @@
+Connecting to 127.0.0.1:5050 ...
+Connected.
+Session sess-0001 started as 'Ana'.
+Type 'help' for a list of commands.
+stcs> help
+Commands (type one, then press Enter):
+  help                   Show this list (works without a server).
+  help server [COMMAND]  Ask the server for its command list.
+  add [title]            Add a task; prompts for anything missing.
+  list [status]          Show tasks; status = open, claimed or done.
+  claim <id>             Take ownership of an OPEN task.
+  release <id>           Return a CLAIMED task to OPEN.
+  done <id>              Mark a task DONE.
+  delete <id>            Remove a task permanently.
+  quit                   End the session and exit.
+  raw <COMMAND> [json]   Send a raw protocol request (for testing).
+stcs> help server
+Server commands:
+  HELLO: Start the session and register a display name.
+      requires: display_name
+  HELP: List the commands the server supports.
+  LIST_TASKS: List tasks, optionally filtered by status.
+  CREATE_TASK: Add a task to the shared list.
+      requires: title
+  CLAIM_TASK: Take ownership of an OPEN task.
+      requires: task_id
+  RELEASE_TASK: Return a CLAIMED task to OPEN.
+      requires: task_id
+  COMPLETE_TASK: Mark a task as DONE.
+      requires: task_id
+  DELETE_TASK: Remove a task permanently.
+      requires: task_id
+  QUIT: End the session gracefully.
+stcs> add
+Title (or /cancel): Write methodology section
+Priority [LOW/MEDIUM/HIGH, Enter = MEDIUM]: high
+Created task 1.
+  Title:      Write methodology section
+  Priority:   HIGH
+  Status:     OPEN
+  Claimed by: -
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  HIGH    OPEN     -               Write methodology section
+1 task
+stcs> claim 1
+Claimed task 1.
+  Title:      Write methodology section
+  Priority:   HIGH
+  Status:     CLAIMED
+  Claimed by: Ana
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> release 1
+Released task 1 (released by Ana).
+  Title:      Write methodology section
+  Priority:   HIGH
+  Status:     OPEN
+  Claimed by: -
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> claim 1
+Claimed task 1.
+  Title:      Write methodology section
+  Priority:   HIGH
+  Status:     CLAIMED
+  Claimed by: Ana
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> done 1
+Marked task 1 as done.
+  Title:      Write methodology section
+  Priority:   HIGH
+  Status:     DONE
+  Claimed by: Ana
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  HIGH    DONE     Ana             Write methodology section
+1 task
+stcs> add Draft abstract
+Created task 2.
+  Title:      Draft abstract
+  Priority:   MEDIUM
+  Status:     OPEN
+  Claimed by: -
+  Created:    by Ana at 2026-10-04T15:01:17Z
+stcs> delete 2
+Deleted task 2.
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  HIGH    DONE     Ana             Write methodology section
+1 task
+stcs> make_coffee
+Unknown command 'make_coffee'. Type 'help' to see the commands.
+stcs> 
+Enter a command (type 'help' for the list).
+stcs> raw MAKE_COFFEE
+Error [UNKNOWN_COMMAND]: Unknown command 'MAKE_COFFEE'. Send HELP to list the
+  supported commands.
+  Hint: Type 'help' to see the supported commands.
+stcs> raw CREATE_TASK {"priority":"HIGH"}
+Error [MISSING_FIELD]: Field 'title' is required.
+  Hint: Check the value and try again.
+stcs> raw CREATE_TASK {"title":"x","priority":"URGENT"}
+Error [INVALID_FIELD]: Field 'priority' must be LOW, MEDIUM, or HIGH.
+  Hint: Check the value and try again.
+stcs> claim 9999
+Error [NOT_FOUND]: No task exists with id 9999.
+  Hint: Use 'list' to see which tasks exist.
+stcs> claim abc
+Task id 'abc' must be a whole number such as 3.
+stcs> claim 1
+Error [CONFLICT]: Task 1 is already marked done.
+  Hint: Use 'list' to see the current owner and status.
+stcs> quit
+Session closed. Goodbye.

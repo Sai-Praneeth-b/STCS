@@ -1,0 +1,10 @@
+Connecting to 127.0.0.1:5050 ...
+Connected.
+Session sess-0002 started as 'Ben'.
+Type 'help' for a list of commands.
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  HIGH    DONE     Ana             Write methodology section
+1 task
+stcs> 

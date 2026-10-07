@@ -1,0 +1,31 @@
+2026-10-04T15:01:17Z INFO Logging to logs/server.log
+2026-10-04T15:01:17Z INFO Server listening on 0.0.0.0:5050
+2026-10-04T15:01:17Z INFO Waiting for a client connection (one active client at a time)
+2026-10-04T15:01:17Z INFO Client sess-0001 connected from 127.0.0.1:45290
+2026-10-04T15:01:17Z INFO sess-0001 HELLO success name="Ana"
+2026-10-04T15:01:17Z INFO sess-0001 HELP success
+2026-10-04T15:01:17Z INFO sess-0001 CREATE_TASK success task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 LIST_TASKS success count=1
+2026-10-04T15:01:17Z INFO sess-0001 CLAIM_TASK success task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 RELEASE_TASK success task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 CLAIM_TASK success task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 COMPLETE_TASK success task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 LIST_TASKS success count=1
+2026-10-04T15:01:17Z INFO sess-0001 CREATE_TASK success task_id=2
+2026-10-04T15:01:17Z INFO sess-0001 DELETE_TASK success task_id=2
+2026-10-04T15:01:17Z INFO sess-0001 LIST_TASKS success count=1
+2026-10-04T15:01:17Z WARN sess-0001 invalid request command="MAKE_COFFEE" error=UNKNOWN_COMMAND field=command
+2026-10-04T15:01:17Z WARN sess-0001 CREATE_TASK rejected error=MISSING_FIELD field=title
+2026-10-04T15:01:17Z WARN sess-0001 CREATE_TASK rejected error=INVALID_FIELD field=priority
+2026-10-04T15:01:17Z WARN sess-0001 CLAIM_TASK rejected error=NOT_FOUND task_id=9999
+2026-10-04T15:01:17Z WARN sess-0001 CLAIM_TASK rejected error=CONFLICT task_id=1
+2026-10-04T15:01:17Z INFO sess-0001 QUIT success
+2026-10-04T15:01:17Z INFO sess-0001 disconnected gracefully
+2026-10-04T15:01:17Z INFO sess-0001 session released
+2026-10-04T15:01:17Z INFO Client sess-0002 connected from 127.0.0.1:45294
+2026-10-04T15:01:17Z INFO sess-0002 HELLO success name="Ben"
+2026-10-04T15:01:17Z INFO sess-0002 LIST_TASKS success count=1
+2026-10-04T15:01:17Z WARN sess-0002 disconnected unexpectedly (connection closed without QUIT)
+2026-10-04T15:01:17Z INFO sess-0002 session released
+2026-10-04T15:01:17Z INFO Shutdown requested; stopping the server
+2026-10-04T15:01:17Z INFO Server shutdown complete

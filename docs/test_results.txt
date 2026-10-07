@@ -1,0 +1,89 @@
+STCS Phase 2 test run
+Date:     2026-10-05T01:54:04Z
+Compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+System:   Linux 6.18.44-fc-v70
+
+=== Suite 1: framing unit tests (no sockets) ===
+PASS  T-13a  one message fed one byte at a time: nothing until the newline
+PASS  T-13b  message split in three pieces (the Phase 1 example split)
+PASS  T-14a  two complete messages in one feed are both returned, in order
+PASS  T-14b  two messages plus a trailing fragment: fragment stays buffered
+PASS  U-F1  CRLF line endings: the trailing CR is stripped
+PASS  U-F2  blank lines are reported as Blank (session stays usable)
+PASS  U-F3  limit boundary: 8192 bytes accepted, 8193 rejected as TooLarge
+PASS  U-F4  8192 bytes arriving without a newline are held, not rejected
+PASS  U-F5  oversize line in 4096-byte chunks: one error, bounded memory, resync
+PASS  U-F6  valid message, oversize line, valid message in one feed
+PASS  U-F7  any chunking of a message stream yields the same messages
+PASS  U-F8  serialised messages never contain a raw newline
+test_framing: 12 passed, 0 failed
+
+=== Suite 2: unit and in-process protocol tests ===
+PASS  U-J1  JSON round trip keeps key order and escapes control characters
+PASS  U-J2  JSON: surrogate pair decodes to one 4-byte UTF-8 character
+PASS  U-J3  JSON: malformed documents are rejected
+PASS  U-J4  JSON: integers vs non-integers are distinguished
+PASS  U-V1  display name rules (1-24, letters digits space _ - .)
+PASS  U-V2  title rules: trimmed, 1-120 chars, not blank, no control chars
+PASS  U-V3  port and task-id text parsing
+PASS  U-E1  envelope: errors name the right code and recover request_id
+PASS  U-E2  invalid UTF-8 on the wire is INVALID_MESSAGE
+PASS  U-T1  task manager: create assigns ids, OPEN, null owner, ascending list
+PASS  U-T2  task manager: legal and illegal status transitions
+PASS  U-T3  task manager: complete directly from OPEN; ids are never reused
+PASS  T-03u  task manager: status filter returns only matching tasks
+PASS  U-S1  registry: unique session ids; NAME_IN_USE logic; name freed on removal
+PASS  T-01u  dispatcher: HELLO returns session_id, server_version 1, 9 commands
+PASS  U-D1  dispatcher: commands before HELLO give INVALID_STATE; HELP and QUIT allowed
+PASS  U-D2  dispatcher: second HELLO is INVALID_STATE; failed HELLO allows retry
+PASS  U-D3  dispatcher: NAME_IN_USE when another active session holds the name
+PASS  T-05u  dispatcher: unknown command -> UNKNOWN_COMMAND, session still works
+PASS  T-06u  dispatcher: missing/invalid fields and NOT_FOUND leave state unchanged
+PASS  U-D4  dispatcher: default priority is MEDIUM; title is trimmed; created_by is the session name
+PASS  U-D5  dispatcher: CONFLICT payloads report current owner and status
+PASS  U-D6  dispatcher: blank and oversize frames give INVALID_MESSAGE / MESSAGE_TOO_LARGE
+PASS  U-D7  dispatcher: internal failure -> SERVER_ERROR with no internals leaked
+PASS  U-D8  dispatcher: QUIT moves the session to CLOSING; malformed QUIT does not
+PASS  U-D9  dispatcher: HELP lists all 9 commands, or one when asked
+PASS  U-L1  logger sanitises client text (control characters, length)
+PASS  U-C1  client table fits in 80 columns (long titles, long owners, big ids)
+PASS  U-C2  client: empty list messages
+PASS  U-C3  client: errors show code + sentence, fit 80 columns, no internals
+PASS  U-C4  client: task_from_json accepts good tasks and rejects broken ones
+PASS  U-C0  client input: empty line is Empty; unknown verb is Invalid (local, no network)
+PASS  U-C5  client input: task ids are validated locally
+PASS  U-C6  client input: list filters, add shorthand, help forms, quit
+test_units: 34 passed, 0 failed
+
+=== Suite 3: integration tests (real server and client over TCP) ===
+PASS  T-01  server start; connect; HELLO -> READY with session_id, version 1, commands
+PASS  T-02  CREATE_TASK returns id 1, OPEN, null owner, created_by, timestamp
+PASS  T-03  LIST_TASKS: ascending ids, all fields, status filter
+PASS  T-04  lifecycle: claim, release, claim, done, done again, delete, list, quit
+PASS  T-05  unknown command MAKE_COFFEE: UNKNOWN_COMMAND, next command still works
+PASS  T-06  missing field, invalid fields, NOT_FOUND, bad JSON, empty line; state unchanged
+PASS  X-05  command before HELLO: INVALID_STATE; HELP allowed; failed HELLO retried
+PASS  U-I1  envelope errors over TCP: version, type, request_id recovery
+PASS  U-I2  oversize request (20 KiB): one MESSAGE_TOO_LARGE, then stream resynchronised
+PASS  U-I3  LIST_TASKS reply larger than 8192 bytes is delivered intact (clarification C-1)
+PASS  T-13  partial message over TCP: processed once, only after the newline
+PASS  T-14  two messages in one send; two plus a trailing fragment
+PASS  T-09  client exits unexpectedly (RST, then plain close): logged, session released, server keeps listening
+PASS  T-09b  client dies in the middle of a message: fragment discarded and logged
+PASS  X-04  tasks survive QUIT and reconnect while the server keeps running (FR-12)
+PASS  X-01  a second client waits in the backlog and is served after the first quits
+PASS  X-02  SIGTERM while a client is connected: session closed, shutdown logged, exit 0
+PASS  X-03  SIGINT with no client connected: clean shutdown, exit 0
+PASS  U-N1  server rejects bad arguments (port 0, text, missing) without starting
+PASS  U-N2  server reports a port that is already in use and exits 1
+PASS  T-07  server not running: client reports failure clearly, exit 1, no crash
+PASS  T-08  client rejects invalid ports/names before connecting (exit 2)
+PASS  T-08b  unresolvable host: plain-language message, exit 1
+PASS  X-06  empty command: client re-prompts and the session continues
+PASS  T-04c  CLI full scenario: add, list, claim, release, claim, done, delete, errors, quit
+PASS  X-07  stdin ends without quit: client sends QUIT itself and exits 0
+PASS  X-08  re-prompts for bad title and priority inside 'add'; /cancel aborts
+PASS  T-17  server disappears while the client is active: clean message, exit 1, no crash
+test_integration: 28 passed, 0 failed
+
+ALL SUITES PASSED
