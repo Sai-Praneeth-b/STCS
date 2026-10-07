@@ -1,13 +1,5 @@
-# Shared Task Coordination Service (STCS)
 
-**Course:** CIS 527 - Computer Networks  
-**Student:** Sai Praneeth Bhattu  
-**Phase:** 1 - Curiosity Report and Detailed Design  
-**Due Date:** 09/18/2026
-
----
-
-## Project Overview
+## Overview
 
 STCS is a TCP client-server application that lets small student groups share a task list in real time. Any group member can add tasks, claim ownership of one, mark it completely, or delete it. A single server holds the authoritative list, so every client always sees the same state.
 
