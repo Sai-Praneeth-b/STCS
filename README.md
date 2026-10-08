@@ -1,4 +1,94 @@
+flowchart TD
 
+subgraph group_client["Client"]
+  node_client_app["Client App<br/>client_app.cpp"]
+  node_input_parser["Input Parser<br/>input_parser.cpp"]
+  node_display["Display<br/>display.cpp"]
+  node_connection["TCP Connection<br/>connection.cpp"]
+end
+
+subgraph group_server["Server"]
+  node_server_process["Server Entry<br/>main.cpp"]
+  node_server_loop["TCP Server<br/>server.cpp"]
+  node_session["Session State<br/>session.cpp"]
+  node_validation["Request Validation"]
+  node_dispatcher["Request Dispatcher<br/>dispatcher.cpp"]
+  node_logger["Server Logger<br/>logger.cpp"]
+end
+
+subgraph group_domain["Task Domain"]
+  node_task_manager[("Task Manager<br/>task_manager.cpp")]
+end
+
+subgraph group_shared["Shared Protocol"]
+  node_framing["Message Framing<br/>framing.cpp"]
+  node_protocol["STCS Protocol<br/>protocol.cpp"]
+  node_json["JSON<br/>json.cpp"]
+  node_field_validation["Field Validation<br/>validation.cpp"]
+  node_utf8["UTF-8<br/>utf8.cpp"]
+  node_network["Socket Utilities<br/>net.cpp"]
+  node_timeutil["UTC Time<br/>timeutil.cpp"]
+end
+
+node_user(("Terminal User"))
+node_log_file["Log File"]
+
+node_user -->|"enters commands"| node_client_app
+node_client_app -->|"parses input"| node_input_parser
+node_client_app -->|"validates fields"| node_field_validation
+node_client_app -->|"exchanges requests"| node_connection
+node_client_app -->|"renders replies"| node_display
+
+node_connection -->|"frames messages"| node_framing
+node_connection -->|"uses sockets"| node_network
+node_connection -->|"builds envelopes"| node_protocol
+
+node_display -->|"formats task data"| node_protocol
+node_input_parser -->|"validates arguments"| node_field_validation
+node_input_parser -->|"maps commands"| node_protocol
+
+node_server_process -->|"starts server"| node_server_loop
+node_server_process -->|"configures dispatcher"| node_dispatcher
+node_server_process -->|"creates registry"| node_session
+node_server_process -->|"creates manager"| node_task_manager
+node_server_process -->|"configures logging"| node_logger
+
+node_server_loop -->|"accepts connections"| node_network
+node_server_loop -->|"frames received data"| node_framing
+node_server_loop -->|"serves session"| node_session
+node_server_loop -->|"dispatches requests"| node_dispatcher
+node_server_loop -->|"logs activity"| node_logger
+node_server_loop -->|"sends responses"| node_network
+
+node_framing -->|"passes frames"| node_validation
+node_validation -->|"passes valid requests"| node_dispatcher
+
+node_dispatcher -->|"executes task commands"| node_task_manager
+node_dispatcher -->|"updates session state"| node_session
+node_dispatcher -->|"records outcomes"| node_logger
+node_dispatcher -->|"builds responses"| node_protocol
+
+node_task_manager -->|"timestamps tasks"| node_timeutil
+
+node_protocol -->|"encodes envelopes"| node_json
+node_json -->|"checks text"| node_utf8
+node_field_validation -->|"checks characters"| node_utf8
+
+node_logger -->|"writes log"| node_log_file
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+
+class node_client_app,node_input_parser,node_display,node_connection,node_user toneBlue
+class node_server_process,node_server_loop,node_session,node_validation,node_dispatcher,node_logger toneAmber
+class node_task_manager toneMint
+class node_framing,node_protocol,node_json,node_field_validation,node_utf8,node_network,node_timeutil toneRose
+class node_log_file toneIndigo
 
 **Phase 2 (this deliverable) is one client + one server.** The server
 deliberately serves one client at a time. Phase 3 adds concurrency; the
