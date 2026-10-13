@@ -1,3 +1,5 @@
+## Link-to-Repo: **https://github.com/Sai-Praneeth-b/STCS**
+
 ## System Architecture
 
 ```mermaid
@@ -95,8 +97,7 @@ class node_log_file toneIndigo
 ```
 
 **Phase 2 (this deliverable) is one client + one server.** The server
-deliberately serves one client at a time. Phase 3 adds concurrency; the
-protocol does not change (see section 17).
+deliberately serves one client at a time.
 
 ## Features
 
@@ -220,7 +221,7 @@ A longer, real, captured session is in `docs/demo_client_ana.txt`
 (and `docs/demo_client_ben.txt`), with the matching server log in
 `docs/sample_server.log`.
 
-## Supported commands (client prompt)
+## Commands (client prompt)
 
 | Type | What it does | Protocol command |
 |---|---|---|
@@ -254,16 +255,6 @@ A longer, real, captured session is in `docs/demo_client_ana.txt`
   `recv()` returning 0 or failing; the session is released and the server
   returns to listening. Tasks stay in memory for the life of the server.
 
-## Logging
-
-`logs/server.log` (relative to where the server is started, or the optional
-second argument), also echoed to the server terminal. Each line is
-`<ISO-8601 UTC timestamp> <LEVEL> <text>`. Logged: startup, listening address
-and port, connections (session id + peer address), every request with its
-outcome, validation/protocol errors, graceful and unexpected disconnects,
-session release, shutdown. Task titles and message contents are **not**
-logged; client-supplied text that is logged is sanitised.
-`docs/sample_server.log` is a real sample.
 
 ## Testing
 
