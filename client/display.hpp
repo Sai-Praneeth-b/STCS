@@ -1,38 +1,30 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "shared/framing.hpp"
-#include "shared/net.hpp"
+#include "shared/json.hpp"
 #include "shared/protocol.hpp"
 
 namespace stcs {
 
-enum class ReceiveStatus {
-    Line,
-    Closed,
-    Error,
-    TooLarge,
-};
+constexpr std::size_t kScreenWidth = 80;
 
-class Connection {
-public:
-    Connection() : framer_(kMaxResponseBytes) {}
+std::vector<std::string> wrap_text(const std::string& text, std::size_t width);
 
-    bool connect_to(const std::string& host, int port, int timeout_seconds,
-                    std::string& error);
+bool task_from_json(const Json& json, Task& task);
 
-    bool send_line(const std::string& framed_message, std::string& error);
+std::string format_task_table(const std::vector<Task>& tasks, const std::string& filter);
 
-    ReceiveStatus receive_line(std::string& line, std::string& error);
+std::string format_task_detail(const Task& task);
 
-    bool is_open() const { return socket_.valid(); }
+std::string format_error(const std::string& code, const std::string& message);
 
-    void close_gracefully();
+std::string format_local_help();
 
-private:
-    Socket socket_;
-    MessageFramer framer_;
-};
+std::string format_server_help(const Json& commands);
+
+std::string wrap_with_indent(const std::string& text, const std::string& first_prefix,
+                             const std::string& next_prefix);
 
 }

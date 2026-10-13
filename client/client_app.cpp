@@ -1,4 +1,3 @@
-// client_app.cpp -- see client_app.hpp.
 #include "client/client_app.hpp"
 
 #include <cctype>
@@ -14,7 +13,7 @@ namespace stcs {
 
 namespace {
 
-constexpr int kConnectTimeoutSeconds = 10;  // NFR-09
+constexpr int kConnectTimeoutSeconds = 10;
 constexpr const char* kPrompt = "stcs> ";
 
 std::string upper_case(std::string text) {
@@ -22,12 +21,11 @@ std::string upper_case(std::string text) {
     return text;
 }
 
-}  // namespace
+}
 
 ClientApp::ClientApp(ClientConfig config, std::istream& in, std::ostream& out)
     : config_(std::move(config)), in_(in), out_(out) {}
 
-// ------------------------------------------------------------------- run
 
 int ClientApp::run() {
     out_ << "Connecting to " << config_.host << ":" << config_.port << " ...\n" << std::flush;
@@ -48,7 +46,6 @@ int ClientApp::run() {
     return exit_code;
 }
 
-// ------------------------------------------------------- request / response
 
 ClientApp::Exchange ClientApp::exchange(const std::string& command, Json payload, Reply& reply) {
     const std::string request_id = "r" + std::to_string(next_request_number_++);
@@ -89,8 +86,6 @@ ClientApp::Exchange ClientApp::exchange(const std::string& command, Json payload
     if (!type || !type->is_string() || type->string_value() != "RESPONSE" || !id ||
         !id->is_string() || id->string_value() != request_id || !status || !status->is_string() ||
         !payload_field) {
-        // The server echoes every request_id, so a mismatch means the
-        // conversation is out of step. Ending the session is the safe choice.
         failure_detail_ = "The server's reply did not match the request that was sent.";
         return Exchange::ProtocolFailure;
     }
@@ -120,7 +115,6 @@ void ClientApp::report_exchange_failure(Exchange outcome) {
     out_ << std::flush;
 }
 
-// ----------------------------------------------------------------- HELLO
 
 bool ClientApp::perform_hello() {
     std::string name = config_.display_name;
@@ -152,9 +146,8 @@ bool ClientApp::perform_hello() {
                                   reply.error_code == "INVALID_FIELD" ||
                                   reply.error_code == "MISSING_FIELD";
         if (!name_problem) {
-            return false;  // e.g. INVALID_VERSION: retrying cannot help
+            return false;
         }
-        // A failed HELLO leaves the session CONNECTED, so ask for another name.
         while (true) {
             std::string candidate;
             if (!read_input("Enter a different display name: ", candidate)) {
@@ -172,7 +165,6 @@ bool ClientApp::perform_hello() {
     }
 }
 
-// ------------------------------------------------------------- input helpers
 
 bool ClientApp::read_input(const std::string& prompt, std::string& line) {
     out_ << prompt << std::flush;
@@ -181,7 +173,7 @@ bool ClientApp::read_input(const std::string& prompt, std::string& line) {
     }
     if (!line.empty() && line.back() == '\r') line.pop_back();
     if (config_.echo_input) {
-        out_ << line << "\n";  // input is not a terminal: show what was "typed"
+        out_ << line << "\n";
     }
     return true;
 }
@@ -233,11 +225,10 @@ bool ClientApp::prompt_task_id(const char* verb, long long& task_id) {
     }
 }
 
-// ----------------------------------------------------------- reply display
 
 bool ClientApp::show_error_reply(const Reply& reply) {
     out_ << format_error(reply.error_code, reply.message);
-    return true;  // a server-side ERROR never ends the session by itself
+    return true;
 }
 
 bool ClientApp::show_task_reply(const Reply& reply, const std::string& headline) {
@@ -253,7 +244,6 @@ bool ClientApp::show_task_reply(const Reply& reply, const std::string& headline)
     return true;
 }
 
-// ------------------------------------------------------------ command loop
 
 int ClientApp::command_loop() {
     while (true) {
@@ -451,8 +441,6 @@ bool ClientApp::handle_help_server(const UserCommand& command) {
 }
 
 bool ClientApp::handle_raw(const UserCommand& command) {
-    // Developer aid: send any command name (even an unknown one) with a JSON
-    // object payload, to show how the server answers invalid requests.
     Json payload = Json::object();
     if (!command.raw_payload_text.empty()) {
         std::string parse_error;
@@ -490,4 +478,4 @@ int ClientApp::handle_quit() {
     return 1;
 }
 
-}  // namespace stcs
+}

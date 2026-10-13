@@ -1,10 +1,3 @@
-// main.cpp -- STCS server entry point.
-//
-//   usage: server <port> [log_file]
-//
-// Wires the modules together: Logger, TaskManager (data + application logic),
-// SessionRegistry, RequestDispatcher (protocol validation + dispatch) and the
-// Server (TCP listener + session loop).
 #include <csignal>
 #include <cstring>
 #include <iostream>
@@ -20,7 +13,7 @@
 
 namespace {
 
-constexpr const char* kDefaultLogPath = "logs/server.log";  // relative to the working directory
+constexpr const char* kDefaultLogPath = "logs/server.log";
 
 void print_usage(const char* program) {
     std::cerr << "Usage: " << program << " <port> [log_file]\n"
@@ -34,13 +27,13 @@ void install_signal_handlers() {
     std::memset(&action, 0, sizeof action);
     action.sa_handler = [](int) { stcs::Server::request_shutdown(); };
     sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;  // no SA_RESTART: blocked calls return EINTR
+    action.sa_flags = 0;
     sigaction(SIGINT, &action, nullptr);
     sigaction(SIGTERM, &action, nullptr);
     stcs::ignore_sigpipe();
 }
 
-}  // namespace
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2 || argc > 3) {

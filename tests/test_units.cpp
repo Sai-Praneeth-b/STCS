@@ -20,6 +20,7 @@ using namespace stcs;
 
 namespace {
 
+
 struct Rig {
     Logger logger;
     TaskManager tasks{[] { return std::string("2026-01-01T00:00:00Z"); }};
@@ -80,7 +81,6 @@ bool json_fails(const std::string& text) {
     return !Json::parse(text, json, error);
 }
 
-// A task with every field set, for display tests.
 Task make_task(long long id, const std::string& title, const std::string& owner = "") {
     Task task;
     task.task_id = id;
@@ -104,14 +104,13 @@ std::size_t widest_line(const std::string& text) {
     return widest;
 }
 
-// A TaskManager whose create_task fails, to exercise SERVER_ERROR.
 struct FailingTaskManager : TaskManager {
     Task create_task(const std::string&, Priority, const std::string&) override {
         throw std::runtime_error("simulated storage failure at /secret/path.cpp:42");
     }
 };
 
-}  // namespace
+}
 
 int main() {
     testing::run("U-J1", "JSON round trip keeps key order and escapes control characters", [] {
@@ -131,17 +130,17 @@ int main() {
         CHECK(json_fails("{\"a\":1} extra"));
         CHECK(json_fails("{'a':1}"));
         CHECK(json_fails("{\"a\":01}"));
-        CHECK(json_fails("{\"a\":1,\"a\":2}"));            // duplicate key
-        CHECK(json_fails("\"\\ud83d\""));                   // lone surrogate
-        CHECK(json_fails("\"bad\xFF\""));                   // invalid UTF-8
-        CHECK(json_fails("\"raw\ttab\""));                  // raw control char
-        CHECK(json_fails(std::string(40, '[') + std::string(40, ']')));  // too deep
+        CHECK(json_fails("{\"a\":1,\"a\":2}"));
+        CHECK(json_fails("\"\\ud83d\""));
+        CHECK(json_fails("\"bad\xFF\""));
+        CHECK(json_fails("\"raw\ttab\""));
+        CHECK(json_fails(std::string(40, '[') + std::string(40, ']')));
     });
     testing::run("U-J4", "JSON: integers vs non-integers are distinguished", [] {
         CHECK(parse_json("7").is_int());
         CHECK(!parse_json("7.0").is_int());
         CHECK(!parse_json("1e2").is_int());
-        CHECK(!parse_json("99999999999999999999").is_int());  // overflows 64 bits
+        CHECK(!parse_json("99999999999999999999").is_int());
     });
 
     testing::run("U-V1", "display name rules (1-24, letters digits space _ - .)", [] {
@@ -207,7 +206,7 @@ int main() {
         CHECK(!parse_request_line("{\"type\":\"REQUEST\",\"request_id\":\"q1\",\"command\":\"QUIT\",\"payload\":{}}", request, failure));
         CHECK(failure.error.code == ErrorCode::MissingField);
         CHECK_EQ(failure.error.payload.find("field")->string_value(), std::string("version"));
-        CHECK_EQ(*failure.request_id, std::string("q1"));     // echoed: it was recoverable
+        CHECK_EQ(*failure.request_id, std::string("q1"));
         CHECK_EQ(*failure.command_text, std::string("QUIT"));
 
         CHECK(!parse_request_line("{\"version\":2,\"type\":\"REQUEST\",\"request_id\":\"q\",\"command\":\"QUIT\",\"payload\":{}}", request, failure));
@@ -230,7 +229,7 @@ int main() {
         CHECK(failure.error.code == ErrorCode::InvalidField);
 
         CHECK(parse_request_line("{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"q\",\"command\":\"QUIT\",\"payload\":{},\"extra\":true}", request, failure));
-        CHECK(request.command == Command::Quit);   // unknown extra fields are ignored
+        CHECK(request.command == Command::Quit);
     });
     testing::run("U-E2", "invalid UTF-8 on the wire is INVALID_MESSAGE", [] {
         Request request;
@@ -256,17 +255,17 @@ int main() {
         TaskManager tasks;
         const long long id = tasks.create_task("A", Priority::Low, "Ana").task_id;
 
-        CHECK(tasks.release_task(id).outcome == TaskOutcome::Conflict);   // OPEN: not claimed
+        CHECK(tasks.release_task(id).outcome == TaskOutcome::Conflict);
         CHECK(tasks.claim_task(id, "Ben").outcome == TaskOutcome::Ok);
-        const TaskResult again = tasks.claim_task(id, "Cara");           // CLAIMED: conflict
+        const TaskResult again = tasks.claim_task(id, "Cara");
         CHECK(again.outcome == TaskOutcome::Conflict);
-        CHECK_EQ(*again.task.claimed_by, std::string("Ben"));            // owner unchanged
+        CHECK_EQ(*again.task.claimed_by, std::string("Ben"));
         CHECK(tasks.release_task(id).outcome == TaskOutcome::Ok);
         CHECK(tasks.claim_task(id, "Ana").outcome == TaskOutcome::Ok);
         const TaskResult done = tasks.complete_task(id);
         CHECK(done.outcome == TaskOutcome::Ok);
         CHECK(done.task.status == TaskStatus::Done);
-        CHECK_EQ(*done.task.claimed_by, std::string("Ana"));             // kept when DONE
+        CHECK_EQ(*done.task.claimed_by, std::string("Ana"));
         CHECK(tasks.complete_task(id).outcome == TaskOutcome::Conflict);
         CHECK(tasks.claim_task(id, "Ben").outcome == TaskOutcome::Conflict);
         CHECK(tasks.release_task(id).outcome == TaskOutcome::Conflict);
@@ -278,7 +277,7 @@ int main() {
         const long long second = tasks.create_task("B", Priority::Low, "Ana").task_id;
         CHECK(tasks.delete_task(second).outcome == TaskOutcome::Ok);
         const long long third = tasks.create_task("C", Priority::Low, "Ana").task_id;
-        CHECK(third > second);                                  // 2 is not handed out again
+        CHECK(third > second);
         CHECK(tasks.delete_task(second).outcome == TaskOutcome::NotFound);
         CHECK(tasks.claim_task(9999, "Ana").outcome == TaskOutcome::NotFound);
     });
@@ -303,9 +302,9 @@ int main() {
         registry.add(s1);
         registry.add(s2);
         CHECK(registry.reserve_name(s1, "Ana"));
-        CHECK(!registry.reserve_name(s2, "Ana"));      // held by an active session
+        CHECK(!registry.reserve_name(s2, "Ana"));
         CHECK(registry.reserve_name(s2, "Ben"));
-        registry.remove(s1);                            // graceful or abrupt end
+        registry.remove(s1);
         CHECK(registry.reserve_name(s2, "Ana"));
         CHECK_EQ(registry.active_count(), 1u);
     });
@@ -328,14 +327,14 @@ int main() {
             const Json r = rig.request("x", command, "{}");
             CHECK_EQ(error_code(r), std::string("INVALID_STATE"));
         }
-        CHECK(rig.session.state() == SessionState::Connected);   // connection not closed
+        CHECK(rig.session.state() == SessionState::Connected);
         CHECK_EQ(Rig::status_of(rig.request("h", "HELP", "{}")), std::string("OK"));
     });
     testing::run("U-D2", "dispatcher: second HELLO is INVALID_STATE; failed HELLO allows retry", [] {
         Rig rig;
         CHECK_EQ(error_code(rig.request("a", "HELLO", "{\"display_name\":\"bad!name\"}")),
                  std::string("INVALID_FIELD"));
-        CHECK(rig.session.state() == SessionState::Connected);   // stays CONNECTED
+        CHECK(rig.session.state() == SessionState::Connected);
         CHECK_EQ(error_code(rig.request("b", "HELLO", "{}")), std::string("MISSING_FIELD"));
         CHECK_EQ(error_code(rig.request("c", "HELLO", "{\"display_name\":7}")), std::string("INVALID_FIELD"));
         CHECK_EQ(Rig::status_of(rig.request("d", "HELLO", "{\"display_name\":\"Ana\"}")), std::string("OK"));
@@ -381,7 +380,7 @@ int main() {
         CHECK_EQ(error_code(rig.request("l", "DELETE_TASK", "{\"task_id\":9999}")), std::string("NOT_FOUND"));
 
         const Json list = rig.request("m", "LIST_TASKS", "{}");
-        CHECK_EQ(list.find("payload")->find("count")->int_value(), 1);   // nothing changed
+        CHECK_EQ(list.find("payload")->find("count")->int_value(), 1);
         const Json& only = list.find("payload")->find("tasks")->items()[0];
         CHECK_EQ(only.find("status")->string_value(), std::string("OPEN"));
         CHECK(only.find("claimed_by")->is_null());
@@ -422,7 +421,7 @@ int main() {
         CHECK(blank.find("request_id")->is_null());
         CHECK_EQ(error_code(rig.send_frame(FrameStatus::TooLarge)), std::string("MESSAGE_TOO_LARGE"));
         CHECK_EQ(error_code(rig.send("{\"version\":1,")), std::string("INVALID_MESSAGE"));
-        CHECK_EQ(Rig::status_of(rig.request("ok", "LIST_TASKS", "{}")), std::string("OK"));  // still serving
+        CHECK_EQ(Rig::status_of(rig.request("ok", "LIST_TASKS", "{}")), std::string("OK"));
     });
     testing::run("U-D7", "dispatcher: internal failure -> SERVER_ERROR with no internals leaked", [] {
         Logger logger;
@@ -443,7 +442,6 @@ int main() {
         const std::string text = r.dump();
         CHECK(text.find("secret") == std::string::npos);
         CHECK(text.find(".cpp") == std::string::npos);
-        // The session survives the internal error.
         const Json list = send("{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"l\",\"command\":\"LIST_TASKS\",\"payload\":{}}");
         CHECK_EQ(Rig::status_of(list), std::string("OK"));
     });
@@ -472,7 +470,7 @@ int main() {
     testing::run("U-C1", "client table fits in 80 columns (long titles, long owners, big ids)", [] {
         std::vector<Task> tasks;
         tasks.push_back(make_task(1, "Short"));
-        tasks.push_back(make_task(2, std::string(120, 'w')));  // one unbreakable 120-char word
+        tasks.push_back(make_task(2, std::string(120, 'w')));
         std::string long_title;
         for (int i = 0; i < 20; ++i) long_title += "wordy section ";
         tasks.push_back(make_task(1234567, long_title, "A.Very-Long_Display Name4"));
@@ -511,7 +509,7 @@ int main() {
     testing::run("U-C5", "client input: task ids are validated locally", [] {
         CHECK(parse_user_command("claim 7").task_id == 7);
         CHECK(parse_user_command("CLAIM 7").kind == UserCommandKind::Claim);
-        CHECK(parse_user_command("claim").kind == UserCommandKind::Claim);          // will prompt
+        CHECK(parse_user_command("claim").kind == UserCommandKind::Claim);
         CHECK(!parse_user_command("claim").task_id.has_value());
         CHECK(parse_user_command("claim abc").kind == UserCommandKind::Invalid);
         CHECK(parse_user_command("claim 0").kind == UserCommandKind::Invalid);

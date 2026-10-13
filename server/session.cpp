@@ -1,4 +1,3 @@
-// session.cpp -- see session.hpp.
 #include "server/session.hpp"
 
 #include <cstdio>
@@ -24,7 +23,6 @@ void ClientSession::mark_closed() {
 }
 
 std::string SessionRegistry::next_session_id() {
-    // PHASE 3: guard next_number_ with session_lock.
     char buffer[24];
     std::snprintf(buffer, sizeof buffer, "sess-%04x", next_number_++);
     return buffer;
@@ -49,4 +47,4 @@ void SessionRegistry::remove(const std::string& session_id) {
     names_by_session_.erase(session_id);
 }
 
-}  // namespace stcs
+}

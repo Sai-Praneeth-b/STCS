@@ -1,4 +1,3 @@
-// dispatcher.cpp -- see dispatcher.hpp.
 #include "server/dispatcher.hpp"
 
 #include <exception>
@@ -7,7 +6,6 @@
 
 namespace stcs {
 
-// ------------------------------------------------------------ small helpers
 
 RequestDispatcher::HandlerResult RequestDispatcher::HandlerResult::success(
     Json payload, std::string log_detail) {
@@ -29,7 +27,6 @@ RequestDispatcher::HandlerResult RequestDispatcher::HandlerResult::failure(
 
 namespace {
 
-// " field=title" when the error names a field, otherwise "".
 std::string field_suffix(const ProtocolError& error) {
     const Json* field = error.payload.find("field");
     if (field != nullptr && field->is_string()) {
@@ -44,7 +41,7 @@ Json task_payload(const Task& task) {
     return payload;
 }
 
-}  // namespace
+}
 
 std::string RequestDispatcher::serialize(const Json& response) {
     return frame_message(response.dump());
@@ -58,8 +55,6 @@ ProtocolError RequestDispatcher::not_found_error(long long task_id) {
 }
 
 ProtocolError RequestDispatcher::conflict_error(const char* what, const Task& task) {
-    // `what` selects the wording; the payload always reports the CURRENT
-    // state so the client can tell the user who owns the task.
     const std::string id = std::to_string(task.task_id);
     std::string message;
     const std::string operation = what;
@@ -81,7 +76,6 @@ ProtocolError RequestDispatcher::conflict_error(const char* what, const Task& ta
     return error;
 }
 
-// ---------------------------------------------------------------- the entry
 
 RequestDispatcher::RequestDispatcher(TaskManager& tasks, SessionRegistry& sessions,
                                      Logger& logger)
@@ -99,7 +93,6 @@ void RequestDispatcher::log_frame_error(const std::string& session_id,
 std::string RequestDispatcher::handle_frame(ClientSession& session, const Frame& frame) {
     switch (frame.status) {
         case FrameStatus::TooLarge: {
-            // Resynchronisation already happened inside the framer.
             ProtocolError error = make_error(
                 ErrorCode::MessageTooLarge,
                 "The message exceeds the 8192-byte limit and was discarded.");
@@ -119,8 +112,6 @@ std::string RequestDispatcher::handle_frame(ClientSession& session, const Frame&
 }
 
 std::string RequestDispatcher::handle_message(ClientSession& session, const std::string& line) {
-    // 1. Envelope: UTF-8, JSON object, version, type, request_id, command,
-    //    payload object, known command.
     Request request;
     EnvelopeFailure failure;
     if (!parse_request_line(line, request, failure)) {
@@ -129,7 +120,6 @@ std::string RequestDispatcher::handle_message(ClientSession& session, const std:
             make_error_response(failure.request_id, failure.command_text, failure.error));
     }
 
-    // 2. Session state (Phase 1, 7.4). INVALID_STATE never closes the socket.
     if (!command_allowed_in_state(request.command, session.state())) {
         std::string message;
         if (request.command == Command::Hello) {
@@ -146,8 +136,6 @@ std::string RequestDispatcher::handle_message(ClientSession& session, const std:
         return serialize(make_error_response(request.request_id, request.command_text, error));
     }
 
-    // 3. Payload validation and execution. Anything unexpected becomes
-    //    SERVER_ERROR: the details go to the log only, never to the client.
     HandlerResult result;
     try {
         result = route(session, request);
@@ -163,7 +151,6 @@ std::string RequestDispatcher::handle_message(ClientSession& session, const std:
             make_error(ErrorCode::ServerError, "The server could not complete the request."));
     }
 
-    // 4. Log the outcome and build the response.
     const std::string detail = result.log_detail.empty() ? "" : " " + result.log_detail;
     if (result.ok) {
         logger_.info(session.id(), std::string(to_string(request.command)) + " success" + detail);
@@ -193,13 +180,12 @@ RequestDispatcher::HandlerResult RequestDispatcher::route(ClientSession& session
     return HandlerResult::failure(make_error(ErrorCode::ServerError, "Unhandled command."));
 }
 
-// ----------------------------------------------------------------- handlers
 
 RequestDispatcher::HandlerResult RequestDispatcher::on_hello(ClientSession& session,
                                                              const Request& request) {
     std::string display_name;
     if (auto error = read_display_name(request.payload, display_name)) {
-        return HandlerResult::failure(*error);  // session stays CONNECTED: client may retry
+        return HandlerResult::failure(*error);
     }
     if (!sessions_.reserve_name(session.id(), display_name)) {
         return HandlerResult::failure(make_field_error(
@@ -272,7 +258,6 @@ RequestDispatcher::HandlerResult RequestDispatcher::on_create_task(ClientSession
         return HandlerResult::failure(*error);
     }
     const Task task = tasks_.create_task(title, priority, session.display_name());
-    // The title is private content and is deliberately NOT logged.
     return HandlerResult::success(task_payload(task), "task_id=" + std::to_string(task.task_id));
 }
 
@@ -355,9 +340,9 @@ RequestDispatcher::HandlerResult RequestDispatcher::on_quit(ClientSession& sessi
                                                            const Request& request) {
     std::string reason;
     if (auto error = read_quit_reason(request.payload, reason)) {
-        return HandlerResult::failure(*error);  // malformed QUIT: session stays open
+        return HandlerResult::failure(*error);
     }
-    session.begin_closing();  // the connection loop closes the socket after the reply
+    session.begin_closing();
     Json payload = Json::object();
     payload.set("message", Json::text("Session closed."));
     payload.set("session_id", Json::text(session.id()));
@@ -366,4 +351,4 @@ RequestDispatcher::HandlerResult RequestDispatcher::on_quit(ClientSession& sessi
     return HandlerResult::success(std::move(payload), detail);
 }
 
-}  // namespace stcs
+}

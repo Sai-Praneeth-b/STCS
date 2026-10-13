@@ -1,4 +1,3 @@
-// json.cpp -- see json.hpp.
 #include "shared/json.hpp"
 
 #include <cerrno>
@@ -11,7 +10,6 @@
 
 namespace stcs {
 
-// ---------------------------------------------------------------- Json value
 
 Json Json::boolean(bool value) {
     Json j;
@@ -81,7 +79,6 @@ Json& Json::set(const std::string& key, Json value) {
     return values_.back();
 }
 
-// ------------------------------------------------------------- serialization
 
 namespace {
 
@@ -98,8 +95,6 @@ void append_escaped_string(std::string& out, const std::string& s) {
             case '\t': out += "\\t"; break;
             default:
                 if (c < 0x20) {
-                    // Remaining control characters become \u00XX so that no
-                    // raw control byte (in particular no newline) is emitted.
                     char buf[8];
                     std::snprintf(buf, sizeof buf, "\\u%04x", c);
                     out += buf;
@@ -111,7 +106,7 @@ void append_escaped_string(std::string& out, const std::string& s) {
     out.push_back('"');
 }
 
-}  // namespace
+}
 
 void Json::dump_to(std::string& out) const {
     switch (type_) {
@@ -162,7 +157,6 @@ std::string Json::dump() const {
     return out;
 }
 
-// ------------------------------------------------------------------- parsing
 
 namespace {
 
@@ -251,7 +245,7 @@ private:
     }
 
     bool parse_object(Json& out, int depth) {
-        ++pos_;  // '{'
+        ++pos_;
         out = Json::object();
         skip_whitespace();
         if (pos_ < text_.size() && text_[pos_] == '}') {
@@ -292,7 +286,7 @@ private:
     }
 
     bool parse_array(Json& out, int depth) {
-        ++pos_;  // '['
+        ++pos_;
         out = Json::array();
         skip_whitespace();
         if (pos_ < text_.size() && text_[pos_] == ']') {
@@ -337,7 +331,6 @@ private:
         std::uint32_t unit = 0;
         if (!parse_hex4(unit)) return fail("invalid \\u escape");
         if (unit >= 0xD800 && unit <= 0xDBFF) {
-            // High surrogate: must be followed by \uDC00-\uDFFF.
             if (pos_ + 2 > text_.size() || text_[pos_] != '\\' || text_[pos_ + 1] != 'u') {
                 return fail("unpaired surrogate in \\u escape");
             }
@@ -355,7 +348,7 @@ private:
     }
 
     bool parse_string(std::string& out) {
-        ++pos_;  // opening quote
+        ++pos_;
         out.clear();
         while (true) {
             if (pos_ >= text_.size()) return fail("unterminated string");
@@ -438,8 +431,6 @@ private:
                 out = Json::integer(value);
                 return true;
             }
-            // Integer too large for 64 bits: fall through and keep it as a
-            // double so that field validators reject it as "not an integer".
         }
         errno = 0;
         const double value = std::strtod(token.c_str(), nullptr);
@@ -453,7 +444,7 @@ private:
     std::string error_;
 };
 
-}  // namespace
+}
 
 bool Json::parse(const std::string& text, Json& out, std::string& error) {
     Parser parser(text);
@@ -465,4 +456,4 @@ bool Json::parse(const std::string& text, Json& out, std::string& error) {
     return true;
 }
 
-}  // namespace stcs
+}

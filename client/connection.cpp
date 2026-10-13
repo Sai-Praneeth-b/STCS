@@ -1,4 +1,3 @@
-// connection.cpp -- see connection.hpp.
 #include "client/connection.hpp"
 
 #include <fcntl.h>
@@ -15,8 +14,6 @@ namespace stcs {
 
 namespace {
 
-// Connects one socket to `address`, giving up after `timeout_ms`.
-// Returns 0 on success or an errno value.
 int connect_with_timeout(int fd, const sockaddr* address, socklen_t length, int timeout_ms) {
     const int original_flags = ::fcntl(fd, F_GETFL, 0);
     ::fcntl(fd, F_SETFL, original_flags | O_NONBLOCK);
@@ -43,7 +40,7 @@ int connect_with_timeout(int fd, const sockaddr* address, socklen_t length, int 
             }
         }
     }
-    ::fcntl(fd, F_SETFL, original_flags);  // back to blocking mode
+    ::fcntl(fd, F_SETFL, original_flags);
     return result;
 }
 
@@ -64,15 +61,14 @@ std::string describe_connect_failure(const std::string& host, int port, int erro
     }
 }
 
-}  // namespace
+}
 
 bool Connection::connect_to(const std::string& host, int port, int timeout_seconds,
                             std::string& error) {
-    // Name resolution: accepts a hostname or a dotted IPv4 address.
     addrinfo hints;
     std::memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;        // the Phase 2 server listens on IPv4
-    hints.ai_socktype = SOCK_STREAM;  // TCP
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
     addrinfo* results = nullptr;
     const int lookup = ::getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &results);
     if (lookup != 0) {
@@ -92,7 +88,6 @@ bool Connection::connect_to(const std::string& host, int port, int timeout_secon
             last_error = ETIMEDOUT;
             break;
         }
-        // socket() then connect(): the client side of the TCP handshake.
         Socket attempt(::socket(candidate->ai_family, candidate->ai_socktype,
                                 candidate->ai_protocol));
         if (!attempt.valid()) {
@@ -126,8 +121,6 @@ bool Connection::send_line(const std::string& framed_message, std::string& error
 
 ReceiveStatus Connection::receive_line(std::string& line, std::string& error) {
     while (true) {
-        // First use what is already buffered: an earlier recv() may have
-        // delivered more than one message.
         Frame frame;
         while (framer_.next_frame(frame)) {
             if (frame.status == FrameStatus::Message) {
@@ -138,7 +131,6 @@ ReceiveStatus Connection::receive_line(std::string& line, std::string& error) {
                 error = "the server sent a message larger than the client accepts";
                 return ReceiveStatus::TooLarge;
             }
-            // Blank lines carry no message: skip them.
         }
 
         char chunk[kReceiveChunkBytes];
@@ -157,9 +149,9 @@ ReceiveStatus Connection::receive_line(std::string& line, std::string& error) {
 
 void Connection::close_gracefully() {
     if (socket_.valid()) {
-        ::shutdown(socket_.fd(), SHUT_WR);  // orderly: the server's recv() gets 0
+        ::shutdown(socket_.fd(), SHUT_WR);
         socket_.close_now();
     }
 }
 
-}  // namespace stcs
+}

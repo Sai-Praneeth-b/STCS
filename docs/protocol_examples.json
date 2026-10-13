@@ -1,0 +1,157 @@
+[
+ {
+  "label": "INVALID_STATE before HELLO",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r1\",\"command\":\"LIST_TASKS\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r1\",\"command\":\"LIST_TASKS\",\"status\":\"ERROR\",\"error_code\":\"INVALID_STATE\",\"message\":\"Command LIST_TASKS is not allowed before HELLO. Send HELLO first.\",\"payload\":{\"state\":\"CONNECTED\"}}"
+ },
+ {
+  "label": "HELLO invalid name",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r2\",\"command\":\"HELLO\",\"payload\":{\"display_name\":\"bad!\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r2\",\"command\":\"HELLO\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Field 'display_name' may contain only letters, digits, space, '_', '-' and '.'.\",\"payload\":{\"field\":\"display_name\"}}"
+ },
+ {
+  "label": "HELLO ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r3\",\"command\":\"HELLO\",\"payload\":{\"display_name\":\"Ana\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r3\",\"command\":\"HELLO\",\"status\":\"OK\",\"payload\":{\"session_id\":\"sess-0001\",\"display_name\":\"Ana\",\"server_version\":1,\"commands\":[\"HELLO\",\"HELP\",\"LIST_TASKS\",\"CREATE_TASK\",\"CLAIM_TASK\",\"RELEASE_TASK\",\"COMPLETE_TASK\",\"DELETE_TASK\",\"QUIT\"]}}"
+ },
+ {
+  "label": "HELLO twice",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r4\",\"command\":\"HELLO\",\"payload\":{\"display_name\":\"Ana\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r4\",\"command\":\"HELLO\",\"status\":\"ERROR\",\"error_code\":\"INVALID_STATE\",\"message\":\"HELLO has already been completed for this session.\",\"payload\":{\"state\":\"READY\"}}"
+ },
+ {
+  "label": "HELP one command",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r5\",\"command\":\"HELP\",\"payload\":{\"command\":\"CLAIM_TASK\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r5\",\"command\":\"HELP\",\"status\":\"OK\",\"payload\":{\"commands\":[{\"name\":\"CLAIM_TASK\",\"summary\":\"Take ownership of an OPEN task.\",\"required_fields\":[\"task_id\"]}]}}"
+ },
+ {
+  "label": "HELP unknown name",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r6\",\"command\":\"HELP\",\"payload\":{\"command\":\"ARCHIVE\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r6\",\"command\":\"HELP\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Unknown command name 'ARCHIVE'.\",\"payload\":{\"field\":\"command\"}}"
+ },
+ {
+  "label": "CREATE ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r7\",\"command\":\"CREATE_TASK\",\"payload\":{\"title\":\"Write methodology section\",\"priority\":\"HIGH\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r7\",\"command\":\"CREATE_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"OPEN\",\"claimed_by\":null,\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}}}"
+ },
+ {
+  "label": "CREATE missing title",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r8\",\"command\":\"CREATE_TASK\",\"payload\":{\"priority\":\"HIGH\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r8\",\"command\":\"CREATE_TASK\",\"status\":\"ERROR\",\"error_code\":\"MISSING_FIELD\",\"message\":\"Field 'title' is required.\",\"payload\":{\"field\":\"title\"}}"
+ },
+ {
+  "label": "CREATE invalid priority",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r9\",\"command\":\"CREATE_TASK\",\"payload\":{\"title\":\"x\",\"priority\":\"URGENT\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r9\",\"command\":\"CREATE_TASK\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Field 'priority' must be LOW, MEDIUM, or HIGH.\",\"payload\":{\"field\":\"priority\"}}"
+ },
+ {
+  "label": "LIST open",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r10\",\"command\":\"LIST_TASKS\",\"payload\":{\"status\":\"OPEN\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r10\",\"command\":\"LIST_TASKS\",\"status\":\"OK\",\"payload\":{\"tasks\":[{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"OPEN\",\"claimed_by\":null,\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}],\"count\":1}}"
+ },
+ {
+  "label": "LIST invalid status",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r11\",\"command\":\"LIST_TASKS\",\"payload\":{\"status\":\"INVALID\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r11\",\"command\":\"LIST_TASKS\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Field 'status' must be OPEN, CLAIMED, or DONE.\",\"payload\":{\"field\":\"status\"}}"
+ },
+ {
+  "label": "CLAIM ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r12\",\"command\":\"CLAIM_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r12\",\"command\":\"CLAIM_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"CLAIMED\",\"claimed_by\":\"Ana\",\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}}}"
+ },
+ {
+  "label": "CLAIM conflict",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r13\",\"command\":\"CLAIM_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r13\",\"command\":\"CLAIM_TASK\",\"status\":\"ERROR\",\"error_code\":\"CONFLICT\",\"message\":\"Task 1 is already claimed by Ana.\",\"payload\":{\"task_id\":1,\"status\":\"CLAIMED\",\"claimed_by\":\"Ana\"}}"
+ },
+ {
+  "label": "CLAIM not found",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r14\",\"command\":\"CLAIM_TASK\",\"payload\":{\"task_id\":9999}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r14\",\"command\":\"CLAIM_TASK\",\"status\":\"ERROR\",\"error_code\":\"NOT_FOUND\",\"message\":\"No task exists with id 9999.\",\"payload\":{\"task_id\":9999}}"
+ },
+ {
+  "label": "CLAIM invalid id",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r15\",\"command\":\"CLAIM_TASK\",\"payload\":{\"task_id\":\"abc\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r15\",\"command\":\"CLAIM_TASK\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Field 'task_id' must be an integer greater than or equal to 1.\",\"payload\":{\"field\":\"task_id\"}}"
+ },
+ {
+  "label": "CLAIM missing id",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r16\",\"command\":\"CLAIM_TASK\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r16\",\"command\":\"CLAIM_TASK\",\"status\":\"ERROR\",\"error_code\":\"MISSING_FIELD\",\"message\":\"Field 'task_id' is required.\",\"payload\":{\"field\":\"task_id\"}}"
+ },
+ {
+  "label": "RELEASE ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r17\",\"command\":\"RELEASE_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r17\",\"command\":\"RELEASE_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"OPEN\",\"claimed_by\":null,\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"},\"released_by\":\"Ana\"}}"
+ },
+ {
+  "label": "RELEASE conflict",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r18\",\"command\":\"RELEASE_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r18\",\"command\":\"RELEASE_TASK\",\"status\":\"ERROR\",\"error_code\":\"CONFLICT\",\"message\":\"Task 1 is not claimed, so it cannot be released.\",\"payload\":{\"task_id\":1,\"status\":\"OPEN\"}}"
+ },
+ {
+  "label": "CLAIM again",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r19\",\"command\":\"CLAIM_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r19\",\"command\":\"CLAIM_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"CLAIMED\",\"claimed_by\":\"Ana\",\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}}}"
+ },
+ {
+  "label": "COMPLETE ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r20\",\"command\":\"COMPLETE_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r20\",\"command\":\"COMPLETE_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":1,\"title\":\"Write methodology section\",\"priority\":\"HIGH\",\"status\":\"DONE\",\"claimed_by\":\"Ana\",\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}}}"
+ },
+ {
+  "label": "COMPLETE conflict",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r21\",\"command\":\"COMPLETE_TASK\",\"payload\":{\"task_id\":1}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r21\",\"command\":\"COMPLETE_TASK\",\"status\":\"ERROR\",\"error_code\":\"CONFLICT\",\"message\":\"Task 1 is already marked done.\",\"payload\":{\"task_id\":1,\"status\":\"DONE\"}}"
+ },
+ {
+  "label": "CREATE second",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r22\",\"command\":\"CREATE_TASK\",\"payload\":{\"title\":\"Draft abstract\"}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r22\",\"command\":\"CREATE_TASK\",\"status\":\"OK\",\"payload\":{\"task\":{\"task_id\":2,\"title\":\"Draft abstract\",\"priority\":\"MEDIUM\",\"status\":\"OPEN\",\"claimed_by\":null,\"created_by\":\"Ana\",\"created_at\":\"2026-10-04T20:11:25Z\"}}}"
+ },
+ {
+  "label": "DELETE ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r23\",\"command\":\"DELETE_TASK\",\"payload\":{\"task_id\":2}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r23\",\"command\":\"DELETE_TASK\",\"status\":\"OK\",\"payload\":{\"task_id\":2,\"deleted\":true}}"
+ },
+ {
+  "label": "DELETE not found",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r24\",\"command\":\"DELETE_TASK\",\"payload\":{\"task_id\":2}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r24\",\"command\":\"DELETE_TASK\",\"status\":\"ERROR\",\"error_code\":\"NOT_FOUND\",\"message\":\"No task exists with id 2.\",\"payload\":{\"task_id\":2}}"
+ },
+ {
+  "label": "unknown command",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r25\",\"command\":\"MAKE_COFFEE\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r25\",\"command\":\"MAKE_COFFEE\",\"status\":\"ERROR\",\"error_code\":\"UNKNOWN_COMMAND\",\"message\":\"Unknown command 'MAKE_COFFEE'. Send HELP to list the supported commands.\",\"payload\":{\"field\":\"command\"}}"
+ },
+ {
+  "label": "envelope missing type",
+  "request": "{\"version\":1,\"request_id\":\"r9\",\"command\":\"QUIT\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r9\",\"command\":\"QUIT\",\"status\":\"ERROR\",\"error_code\":\"MISSING_FIELD\",\"message\":\"Field 'type' is required.\",\"payload\":{\"field\":\"type\"}}"
+ },
+ {
+  "label": "envelope bad version",
+  "request": "{\"version\":2,\"type\":\"REQUEST\",\"request_id\":\"r10\",\"command\":\"LIST_TASKS\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r10\",\"command\":\"LIST_TASKS\",\"status\":\"ERROR\",\"error_code\":\"INVALID_VERSION\",\"message\":\"Protocol version 2 is not supported. Supported versions: 1.\",\"payload\":{\"field\":\"version\",\"supported_versions\":[1]}}"
+ },
+ {
+  "label": "envelope not json",
+  "request": "{\"version\":1,",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":null,\"command\":null,\"status\":\"ERROR\",\"error_code\":\"INVALID_MESSAGE\",\"message\":\"The message is not valid JSON (object key must be a string).\",\"payload\":{}}"
+ },
+ {
+  "label": "envelope blank line",
+  "request": "",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":null,\"command\":null,\"status\":\"ERROR\",\"error_code\":\"INVALID_MESSAGE\",\"message\":\"An empty message was received.\",\"payload\":{}}"
+ },
+ {
+  "label": "QUIT malformed reason",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r30\",\"command\":\"QUIT\",\"payload\":{\"reason\":5}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r30\",\"command\":\"QUIT\",\"status\":\"ERROR\",\"error_code\":\"INVALID_FIELD\",\"message\":\"Field 'reason' must be a string of at most 200 bytes.\",\"payload\":{\"field\":\"reason\"}}"
+ },
+ {
+  "label": "QUIT ok",
+  "request": "{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"r31\",\"command\":\"QUIT\",\"payload\":{}}",
+  "response": "{\"version\":1,\"type\":\"RESPONSE\",\"request_id\":\"r31\",\"command\":\"QUIT\",\"status\":\"OK\",\"payload\":{\"message\":\"Session closed.\",\"session_id\":\"sess-0001\"}}"
+ }
+]

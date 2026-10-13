@@ -26,7 +26,7 @@ std::vector<Frame> drain(MessageFramer& framer) {
     return frames;
 }
 
-}  
+}
 
 int main() {
     testing::run("T-13a", "one message fed one byte at a time: nothing until the newline", [] {
@@ -37,7 +37,7 @@ int main() {
             framer.feed(&wire[i], 1);
             const std::vector<Frame> frames = drain(framer);
             if (i + 1 < wire.size()) {
-                CHECK_EQ(frames.size(), 0u);  // no newline yet: no message may appear
+                CHECK_EQ(frames.size(), 0u);
             } else {
                 CHECK_EQ(frames.size(), 1u);
                 CHECK(frames[0].status == FrameStatus::Message);
@@ -56,7 +56,7 @@ int main() {
         framer.feed(p1.data(), p1.size());
         CHECK_EQ(drain(framer).size(), 0u);
         framer.feed(p2.data(), p2.size());
-        CHECK_EQ(drain(framer).size(), 0u);  // complete JSON but still no newline
+        CHECK_EQ(drain(framer).size(), 0u);
         framer.feed("\n", 1);
         const std::vector<Frame> frames = drain(framer);
         CHECK_EQ(frames.size(), 1u);
@@ -87,8 +87,8 @@ int main() {
         MessageFramer framer(kMaxMessageBytes);
         framer.feed(chunk.data(), chunk.size());
         std::vector<Frame> frames = drain(framer);
-        CHECK_EQ(frames.size(), 2u);                       // C is NOT delivered yet
-        CHECK_EQ(framer.buffered_bytes(), fragment.size()); // and nothing was lost
+        CHECK_EQ(frames.size(), 2u);
+        CHECK_EQ(framer.buffered_bytes(), fragment.size());
         framer.feed(rest.data(), rest.size());
         frames = drain(framer);
         CHECK_EQ(frames.size(), 1u);
@@ -149,7 +149,7 @@ int main() {
         const std::string chunk(kReceiveChunkBytes, 'y');
         std::size_t too_large_events = 0;
         std::size_t largest_buffer = 0;
-        for (int i = 0; i < 12; ++i) {  // 48 KiB with no newline
+        for (int i = 0; i < 12; ++i) {
             framer.feed(chunk.data(), chunk.size());
             for (const Frame& frame : drain(framer)) {
                 CHECK(frame.status == FrameStatus::TooLarge);
@@ -157,16 +157,15 @@ int main() {
             }
             largest_buffer = std::max(largest_buffer, framer.buffered_bytes());
         }
-        CHECK_EQ(too_large_events, 1u);                 // reported once, not per chunk
-        CHECK(largest_buffer <= kMaxMessageBytes);      // memory never grew without bound
+        CHECK_EQ(too_large_events, 1u);
+        CHECK(largest_buffer <= kMaxMessageBytes);
         CHECK(framer.discarding());
 
-        // The rest of the bad line, its newline, then a good message.
         const std::string tail = "zzz\n" + sample_request("r9", "after");
         framer.feed(tail.data(), tail.size());
         const std::vector<Frame> frames = drain(framer);
         CHECK_EQ(frames.size(), 1u);
-        CHECK(frames[0].status == FrameStatus::Message);  // stream resynchronised
+        CHECK(frames[0].status == FrameStatus::Message);
         CHECK(!framer.discarding());
     });
 
@@ -193,7 +192,7 @@ int main() {
             expected.push_back(wire.substr(0, wire.size() - 1));
             stream += wire;
         }
-        unsigned seed = 12345;  // deterministic pseudo-random chunk sizes
+        unsigned seed = 12345;
         for (int trial = 0; trial < 200; ++trial) {
             MessageFramer framer(kMaxMessageBytes);
             std::vector<std::string> got;

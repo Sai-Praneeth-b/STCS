@@ -36,7 +36,7 @@ inline int summarize(const char* suite) {
     return failed_count() == 0 ? 0 : 1;
 }
 
-} 
+}
 
 #define CHECK(condition)                                                              \
     do {                                                                              \

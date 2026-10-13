@@ -1,4 +1,3 @@
-// display.cpp -- see display.hpp.
 #include "client/display.hpp"
 
 #include <algorithm>
@@ -10,7 +9,6 @@ namespace stcs {
 
 namespace {
 
-// Pads `text` with spaces on the right to `width` columns.
 std::string pad_right(const std::string& text, std::size_t width) {
     const std::size_t length = utf8_length(text);
     return length >= width ? text : text + std::string(width - length, ' ');
@@ -21,11 +19,10 @@ std::string pad_left(const std::string& text, std::size_t width) {
     return length >= width ? text : std::string(width - length, ' ') + text;
 }
 
-constexpr std::size_t kPriorityWidth = 6;   // "MEDIUM"
-constexpr std::size_t kStatusWidth = 7;     // "CLAIMED"
+constexpr std::size_t kPriorityWidth = 6;
+constexpr std::size_t kStatusWidth = 7;
 constexpr std::size_t kOwnerWidth = 14;
 
-// Owners longer than the column are cut with a trailing '~'.
 std::string fit_owner(const std::string& owner) {
     if (utf8_length(owner) <= kOwnerWidth) return owner;
     return utf8_truncate(owner, kOwnerWidth - 1) + "~";
@@ -47,7 +44,7 @@ const char* hint_for(const std::string& code) {
     return "";
 }
 
-}  // namespace
+}
 
 std::vector<std::string> wrap_text(const std::string& text, std::size_t width) {
     std::vector<std::string> lines;
@@ -58,7 +55,6 @@ std::vector<std::string> wrap_text(const std::string& text, std::size_t width) {
     std::string word;
     while (words >> word) {
         std::size_t word_length = utf8_length(word);
-        // A word wider than a whole line is split into line-sized pieces.
         while (word_length > width) {
             if (current_length > 0) {
                 lines.push_back(current);
@@ -136,7 +132,7 @@ std::string format_task_table(const std::vector<Task>& tasks, const std::string&
                               : "No tasks with status " + filter + ".\n";
     }
 
-    std::size_t id_width = 2;  // wide enough for "ID" and for the largest id
+    std::size_t id_width = 2;
     for (const Task& task : tasks) {
         id_width = std::max(id_width, std::to_string(task.task_id).size());
     }
@@ -227,4 +223,4 @@ std::string format_server_help(const Json& commands) {
     return out;
 }
 
-}  // namespace stcs
+}

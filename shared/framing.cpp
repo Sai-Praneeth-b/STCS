@@ -1,4 +1,3 @@
-// framing.cpp -- see framing.hpp.
 #include "shared/framing.hpp"
 
 #include <stdexcept>
@@ -16,8 +15,6 @@ bool MessageFramer::next_frame(Frame& out) {
         const std::size_t newline = buffer_.find('\n');
 
         if (discarding_) {
-            // The tail of an oversized line: drop everything up to and
-            // including its newline, then resume normal framing.
             if (newline == std::string::npos) {
                 buffer_.clear();
                 return false;
@@ -29,19 +26,16 @@ bool MessageFramer::next_frame(Frame& out) {
 
         if (newline == std::string::npos) {
             if (buffer_.size() > max_line_) {
-                // Already past the limit with no delimiter in sight: report
-                // the problem now, free the memory and skip to the next '\n'.
                 buffer_.clear();
                 discarding_ = true;
                 out.status = FrameStatus::TooLarge;
                 out.line.clear();
                 return true;
             }
-            return false;  // incomplete message: keep it for the next feed()
+            return false;
         }
 
         if (newline > max_line_) {
-            // A complete line arrived but it is too long.
             buffer_.erase(0, newline + 1);
             out.status = FrameStatus::TooLarge;
             out.line.clear();
@@ -73,4 +67,4 @@ std::string frame_message(const std::string& json_text) {
     return framed;
 }
 
-}  // namespace stcs
+}

@@ -1,4 +1,3 @@
-// input_parser.cpp -- see input_parser.hpp.
 #include "client/input_parser.hpp"
 
 #include <cctype>
@@ -21,7 +20,6 @@ std::string to_upper(std::string text) {
     return text;
 }
 
-// Splits "verb rest of line" into the verb and the (trimmed) remainder.
 void split_verb(const std::string& line, std::string& verb, std::string& rest) {
     const std::size_t space = line.find_first_of(" \t");
     if (space == std::string::npos) {
@@ -40,14 +38,12 @@ UserCommand invalid(const std::string& message) {
     return command;
 }
 
-// claim/release/done/delete: the id is optional here (the app prompts for a
-// missing one) but must be valid if present.
 UserCommand parse_task_id_command(UserCommandKind kind, const std::string& verb,
                                   const std::string& rest) {
     UserCommand command;
     command.kind = kind;
     if (rest.empty()) {
-        return command;  // the application will prompt for the id
+        return command;
     }
     if (rest.find_first_of(" \t") != std::string::npos) {
         return invalid("Usage: " + verb + " <task id>   (one whole number, e.g. '" + verb + " 3').");
@@ -61,7 +57,7 @@ UserCommand parse_task_id_command(UserCommandKind kind, const std::string& verb,
     return command;
 }
 
-}  // namespace
+}
 
 UserCommand parse_user_command(const std::string& raw_line) {
     const std::string line = trim_ascii(raw_line);
@@ -101,7 +97,7 @@ UserCommand parse_user_command(const std::string& raw_line) {
 
     if (verb == "add") {
         command.kind = UserCommandKind::Add;
-        command.title = rest;  // may be empty: the application prompts for it
+        command.title = rest;
         return command;
     }
 
@@ -145,4 +141,4 @@ UserCommand parse_user_command(const std::string& raw_line) {
     return invalid("Unknown command '" + verb_text + "'. Type 'help' to see the commands.");
 }
 
-}  // namespace stcs
+}

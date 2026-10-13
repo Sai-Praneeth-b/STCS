@@ -1,14 +1,11 @@
-// protocol.cpp -- see protocol.hpp.
 #include "shared/protocol.hpp"
 
 #include "shared/utf8.hpp"
 
 namespace stcs {
 
-// ----------------------------------------------------------------- commands
 
 const std::vector<CommandInfo>& command_table() {
-    // Summaries for CREATE_TASK and CLAIM_TASK are the Phase 1 HELP example.
     static const std::vector<CommandInfo> table = {
         {Command::Hello, "HELLO", "Start the session and register a display name.", {"display_name"}},
         {Command::Help, "HELP", "List the commands the server supports.", {}},
@@ -29,7 +26,7 @@ const CommandInfo& command_info(Command command) {
             return info;
         }
     }
-    return command_table().front();  // unreachable: the table is exhaustive
+    return command_table().front();
 }
 
 const char* to_string(Command command) {
@@ -46,7 +43,6 @@ bool parse_command(const std::string& text, Command& out) {
     return false;
 }
 
-// -------------------------------------------------------------- error codes
 
 const char* to_string(ErrorCode code) {
     switch (code) {
@@ -79,7 +75,6 @@ ProtocolError make_field_error(ErrorCode code, const std::string& field, std::st
     return error;
 }
 
-// ----------------------------------------------------------- session states
 
 const char* to_string(SessionState state) {
     switch (state) {
@@ -107,7 +102,6 @@ bool command_allowed_in_state(Command command, SessionState state) {
     return false;
 }
 
-// -------------------------------------------------------------- task entity
 
 const char* to_string(Priority priority) {
     switch (priority) {
@@ -153,11 +147,9 @@ Json task_to_json(const Task& task) {
     return json;
 }
 
-// --------------------------------------------------------- request envelope
 
 namespace {
 
-// Echoing a recovered value is only useful if it is small and sane.
 std::optional<std::string> recover_string(const Json& object, const char* key) {
     const Json* value = object.find(key);
     if (value != nullptr && value->is_string() && !value->string_value().empty() &&
@@ -174,7 +166,7 @@ bool fail_envelope(EnvelopeFailure& failure, const Json& object, ProtocolError e
     return false;
 }
 
-}  // namespace
+}
 
 bool parse_request_line(const std::string& line, Request& request, EnvelopeFailure& failure) {
     failure = EnvelopeFailure{};
@@ -196,7 +188,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
         return false;
     }
 
-    // version
     const Json* version = root.find("version");
     if (version == nullptr) {
         return fail_envelope(failure, root,
@@ -219,7 +210,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
         return fail_envelope(failure, root, std::move(error));
     }
 
-    // type
     const Json* type = root.find("type");
     if (type == nullptr) {
         return fail_envelope(failure, root,
@@ -232,7 +222,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
                                               "Field 'type' must be \"REQUEST\"."));
     }
 
-    // request_id
     const Json* request_id = root.find("request_id");
     if (request_id == nullptr) {
         return fail_envelope(failure, root,
@@ -246,7 +235,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
                                               "Field 'request_id' must be a string of 1-64 bytes."));
     }
 
-    // command
     const Json* command = root.find("command");
     if (command == nullptr) {
         return fail_envelope(failure, root,
@@ -259,8 +247,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
                                               "Field 'command' must be a string."));
     }
 
-    // Unknown command names are an envelope-level failure: the request is
-    // well-formed but names something the protocol does not define.
     Command parsed_command = Command::Hello;
     if (!parse_command(command->string_value(), parsed_command)) {
         std::string shown = utf8_truncate(command->string_value(), 40);
@@ -271,7 +257,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
         return fail_envelope(failure, root, std::move(error));
     }
 
-    // payload
     const Json* payload = root.find("payload");
     if (payload == nullptr) {
         return fail_envelope(failure, root,
@@ -291,7 +276,6 @@ bool parse_request_line(const std::string& line, Request& request, EnvelopeFailu
     return true;
 }
 
-// ------------------------------------------------------------------ builders
 
 namespace {
 
@@ -307,7 +291,7 @@ Json response_skeleton(const std::optional<std::string>& request_id,
     return response;
 }
 
-}  // namespace
+}
 
 Json make_ok_response(const std::optional<std::string>& request_id,
                       const std::optional<std::string>& command,
@@ -337,4 +321,4 @@ Json make_request(const std::string& request_id, const std::string& command, Jso
     return request;
 }
 
-}  // namespace stcs
+}

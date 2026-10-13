@@ -1,0 +1,5 @@
+2026-10-13T17:09:19Z INFO Logging to logs/server.log
+2026-10-13T17:09:19Z INFO Server listening on 0.0.0.0:5050
+2026-10-13T17:09:19Z INFO Waiting for a client connection (one active client at a time)
+2026-10-13T17:09:22Z INFO Shutdown requested; stopping the server
+2026-10-13T17:09:22Z INFO Server shutdown complete

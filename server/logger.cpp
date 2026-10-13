@@ -1,4 +1,3 @@
-// logger.cpp -- see logger.hpp.
 #include "server/logger.hpp"
 
 #include <sys/stat.h>
@@ -23,7 +22,6 @@ const char* level_name(Logger::Level level) {
     return "INFO";
 }
 
-// Returns the directory part of "dir/file.log", or "" if there is none.
 std::string parent_directory(const std::string& path) {
     const std::size_t slash = path.find_last_of('/');
     if (slash == std::string::npos || slash == 0) {
@@ -32,12 +30,11 @@ std::string parent_directory(const std::string& path) {
     return path.substr(0, slash);
 }
 
-}  // namespace
+}
 
 bool Logger::open_file(const std::string& path, std::string& error) {
     const std::string directory = parent_directory(path);
     if (!directory.empty()) {
-        // One level is enough for the default "logs/server.log".
         if (::mkdir(directory.c_str(), 0755) != 0 && errno != EEXIST) {
             error = "cannot create directory '" + directory + "': " + std::strerror(errno);
             return false;
@@ -52,15 +49,13 @@ bool Logger::open_file(const std::string& path, std::string& error) {
 }
 
 void Logger::write_line(Level level, const std::string& message) {
-    // PHASE 3: take the logger mutex here so concurrent sessions cannot
-    // interleave their lines.
     const std::string line = utc_timestamp_now() + " " + level_name(level) + " " + message;
     if (file_.is_open()) {
         file_ << line << '\n';
         file_.flush();
     }
     if (console_echo_) {
-        std::cout << line << std::endl;  // std::endl flushes: lines appear immediately
+        std::cout << line << std::endl;
     }
 }
 
@@ -99,4 +94,4 @@ std::string Logger::sanitize(const std::string& text, std::size_t max_chars) {
     return out;
 }
 
-}  // namespace stcs
+}

@@ -28,6 +28,7 @@ namespace {
 std::string g_bin_dir = "bin";
 constexpr int kWatchdogMs = 15000;
 
+
 class Process {
 public:
     Process(const std::vector<std::string>& argv, bool pipe_stdin) {
@@ -71,8 +72,6 @@ public:
     }
     void close_stdin() { if (in_fd_ >= 0) { ::close(in_fd_); in_fd_ = -1; } }
 
-    // Reads output until `marker` has appeared (or EOF). Returns everything
-    // read so far in `captured`. Blocking, with a watchdog.
     bool read_until(const std::string& marker, std::size_t from = 0) {
         while (captured_.find(marker, from) == std::string::npos) {
             if (!read_more()) return false;
@@ -144,7 +143,6 @@ public:
         return process_->output().find(text) != std::string::npos;
     }
 
-    // SIGTERM, then read the rest of the log until the server exits.
     int stop() {
         if (stopped_) return exit_code_;
         process_->send_signal(SIGTERM);
@@ -155,7 +153,7 @@ public:
     }
     ~ServerProcess() {
         if (!stopped_) { process_->send_signal(SIGTERM); process_->read_all(); }
-        ::unlink(log_path_.c_str());  // keep logs/ tidy: test logs are throw-away
+        ::unlink(log_path_.c_str());
     }
 
 private:
@@ -165,6 +163,7 @@ private:
     bool stopped_ = false;
     int exit_code_ = -1;
 };
+
 
 class TestConn {
 public:
@@ -176,7 +175,7 @@ public:
         address.sin_port = htons(static_cast<uint16_t>(port));
         if (::connect(socket_.fd(), reinterpret_cast<sockaddr*>(&address), sizeof address) != 0)
             throw testing::Failure(std::string("connect failed: ") + std::strerror(errno));
-        const int one = 1; 
+        const int one = 1;
         ::setsockopt(socket_.fd(), IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);
     }
 
@@ -234,7 +233,7 @@ public:
         return call("hello", "HELLO", "{\"display_name\":\"" + name + "\"}");
     }
 
-    void abort_connection() { 
+    void abort_connection() {
         linger hard{1, 0};
         ::setsockopt(socket_.fd(), SOL_SOCKET, SO_LINGER, &hard, sizeof hard);
         socket_.close_now();
@@ -280,13 +279,13 @@ bool contains(const std::string& text, const std::string& part) {
     return text.find(part) != std::string::npos;
 }
 
-}  
+}
 
 int main(int argc, char* argv[]) {
     if (argc > 1) g_bin_dir = argv[1];
     ::signal(SIGPIPE, SIG_IGN);
-    ::alarm(300);  
-    
+    ::alarm(300);
+
     testing::run("T-01", "server start; connect; HELLO -> READY with session_id, version 1, commands", [] {
         ServerProcess server;
         TestConn client(server.port());
@@ -368,7 +367,7 @@ int main(int argc, char* argv[]) {
         CHECK_EQ(list_count(c, "l"), 1);
         r = c.call("q", "QUIT");
         CHECK_EQ(status_of(r), std::string("OK"));
-        CHECK(c.next_is_eof());                     
+        CHECK(c.next_is_eof());
         server.wait_for_log("disconnected gracefully");
         server.wait_for_log("session released");
     });
@@ -391,29 +390,29 @@ int main(int argc, char* argv[]) {
         c.hello("Ana");
         c.call("seed", "CREATE_TASK", "{\"title\":\"the only task\"}");
 
-        Json r = c.call("a", "CREATE_TASK", "{}");                                  
+        Json r = c.call("a", "CREATE_TASK", "{}");
         CHECK_EQ(code_of(r), std::string("MISSING_FIELD"));
         CHECK_EQ(payload_of(r).find("field")->string_value(), std::string("title"));
         CHECK(no_internals(r));
-        r = c.call("b", "CREATE_TASK", "{\"title\":\"t\",\"priority\":\"URGENT\"}"); 
+        r = c.call("b", "CREATE_TASK", "{\"title\":\"t\",\"priority\":\"URGENT\"}");
         CHECK_EQ(code_of(r), std::string("INVALID_FIELD"));
-        r = c.call("c", "CLAIM_TASK", "{\"task_id\":\"abc\"}");                  
+        r = c.call("c", "CLAIM_TASK", "{\"task_id\":\"abc\"}");
         CHECK_EQ(code_of(r), std::string("INVALID_FIELD"));
-        r = c.call("d", "CLAIM_TASK", "{\"task_id\":999}");                      
+        r = c.call("d", "CLAIM_TASK", "{\"task_id\":999}");
         CHECK_EQ(code_of(r), std::string("NOT_FOUND"));
         CHECK(no_internals(r));
 
-        c.send_raw("{\"version\":1,\n");                                    
+        c.send_raw("{\"version\":1,\n");
         r = c.read_response();
         CHECK_EQ(code_of(r), std::string("INVALID_MESSAGE"));
         CHECK(r.find("request_id")->is_null());
-        c.send_raw("\n");                                                     
+        c.send_raw("\n");
         r = c.read_response();
         CHECK_EQ(code_of(r), std::string("INVALID_MESSAGE"));
 
         r = c.call("s", "LIST_TASKS", "{\"status\":\"INVALID\"}");
         CHECK_EQ(code_of(r), std::string("INVALID_FIELD"));
-        CHECK_EQ(list_count(c, "z"), 1);           
+        CHECK_EQ(list_count(c, "z"), 1);
         c.call("q", "QUIT");
     });
 
@@ -424,10 +423,10 @@ int main(int argc, char* argv[]) {
         CHECK_EQ(code_of(c.call("b", "CREATE_TASK", "{\"title\":\"x\"}")), std::string("INVALID_STATE"));
         CHECK_EQ(status_of(c.call("c", "HELP")), std::string("OK"));
         CHECK_EQ(code_of(c.call("d", "HELLO", "{\"display_name\":\"bad!\"}")), std::string("INVALID_FIELD"));
-        CHECK_EQ(code_of(c.call("e", "LIST_TASKS")), std::string("INVALID_STATE"));   // still CONNECTED
+        CHECK_EQ(code_of(c.call("e", "LIST_TASKS")), std::string("INVALID_STATE"));
         CHECK_EQ(status_of(c.call("f", "HELLO", "{\"display_name\":\"Ana\"}")), std::string("OK"));
         CHECK_EQ(code_of(c.call("g", "HELLO", "{\"display_name\":\"Ana\"}")), std::string("INVALID_STATE"));
-        CHECK_EQ(status_of(c.call("h", "LIST_TASKS")), std::string("OK"));            // connection survived
+        CHECK_EQ(status_of(c.call("h", "LIST_TASKS")), std::string("OK"));
         c.call("q", "QUIT");
     });
 
@@ -446,13 +445,13 @@ int main(int argc, char* argv[]) {
         c.send_raw("{\"version\":1,\"type\":\"REQUEST\",\"command\":\"QUIT\",\"payload\":{}}\n");
         r = c.read_response();
         CHECK_EQ(code_of(r), std::string("MISSING_FIELD"));
-        CHECK(r.find("request_id")->is_null());       // unrecoverable -> null
+        CHECK(r.find("request_id")->is_null());
         c.send_raw("[1,2,3]\n");
         CHECK_EQ(code_of(c.read_response()), std::string("INVALID_MESSAGE"));
         c.send_raw("{\"version\":1,\"type\":\"REQUEST\",\"request_id\":\"u\",\"command\":\"LIST_TASKS\",\"payload\":{},\"future_field\":1}\n");
-        CHECK_EQ(status_of(c.read_response()), std::string("OK"));   // unknown extra fields ignored
+        CHECK_EQ(status_of(c.read_response()), std::string("OK"));
         c.send_raw(std::string("{\"version\":1,\"x\":\"bad\xFF\"}\n"));
-        CHECK_EQ(code_of(c.read_response()), std::string("INVALID_MESSAGE"));  // invalid UTF-8
+        CHECK_EQ(code_of(c.read_response()), std::string("INVALID_MESSAGE"));
         c.call("q", "QUIT");
     });
 
@@ -463,8 +462,8 @@ int main(int argc, char* argv[]) {
         c.send_raw(std::string(20000, 'A') + "\n" + TestConn::request_text("after", "LIST_TASKS"));
         Json r = c.read_response();
         CHECK_EQ(code_of(r), std::string("MESSAGE_TOO_LARGE"));
-        r = c.read_response();                                   // the very next response ...
-        CHECK_EQ(r.find("request_id")->string_value(), std::string("after"));  // ... is for the valid request
+        r = c.read_response();
+        CHECK_EQ(r.find("request_id")->string_value(), std::string("after"));
         CHECK_EQ(status_of(r), std::string("OK"));
         c.send_raw(std::string(30000, 'B'));
         c.send_raw(std::string(30000, 'C') + "\n");
@@ -500,13 +499,13 @@ int main(int argc, char* argv[]) {
         c.send_raw(wire.substr(cut, wire.size() - 1 - cut));
         c.send_raw("\n");
         Json r = c.read_response();
-     
         CHECK_EQ(r.find("request_id")->string_value(), std::string("split1"));
         CHECK_EQ(status_of(r), std::string("OK"));
-        CHECK_EQ(list_count(c, "l1"), 1);              /
+        CHECK_EQ(list_count(c, "l1"), 1);
+
         const std::string accented = TestConn::request_text("split2", "CREATE_TASK",
                                                             "{\"title\":\"Caf\xC3\xA9 \xE2\x9C\x93\"}");
-        const std::size_t inside = accented.find("\xC3\xA9") + 1;   // between the 2 bytes of e-acute
+        const std::size_t inside = accented.find("\xC3\xA9") + 1;
         c.send_raw(accented.substr(0, inside));
         c.send_raw(accented.substr(inside));
         r = c.read_response();
@@ -530,7 +529,7 @@ int main(int argc, char* argv[]) {
                    TestConn::request_text("B", "CREATE_TASK", "{\"title\":\"B\"}"));
         Json r1 = c.read_response();
         Json r2 = c.read_response();
-        CHECK_EQ(r1.find("request_id")->string_value(), std::string("A"));   // in order
+        CHECK_EQ(r1.find("request_id")->string_value(), std::string("A"));
         CHECK_EQ(r2.find("request_id")->string_value(), std::string("B"));
         CHECK_EQ(payload_of(r1).find("task")->find("task_id")->int_value(), 1);
         CHECK_EQ(payload_of(r2).find("task")->find("task_id")->int_value(), 2);
@@ -541,14 +540,13 @@ int main(int argc, char* argv[]) {
                    TestConn::request_text("E", "CREATE_TASK", "{\"title\":\"E\"}") + third.substr(0, keep));
         CHECK_EQ(c.read_response().find("request_id")->string_value(), std::string("D"));
         CHECK_EQ(c.read_response().find("request_id")->string_value(), std::string("E"));
-        c.send_raw(third.substr(keep));                          // the fragment completes
+        c.send_raw(third.substr(keep));
         r1 = c.read_response();
         CHECK_EQ(r1.find("request_id")->string_value(), std::string("C"));
         CHECK_EQ(status_of(r1), std::string("OK"));
-        CHECK_EQ(list_count(c, "n"), 5);                         // A,B,D,E,C: no loss, no extra
+        CHECK_EQ(list_count(c, "n"), 5);
         c.call("q", "QUIT");
     });
-
 
     testing::run("T-09", "client exits unexpectedly (RST, then plain close): logged, session released, server keeps listening", [] {
         ServerProcess server;
@@ -556,16 +554,16 @@ int main(int argc, char* argv[]) {
             TestConn doomed(server.port());
             doomed.hello("Ana");
             doomed.call("a", "CREATE_TASK", "{\"title\":\"survives the crash\"}");
-            doomed.abort_connection();                            // no QUIT
+            doomed.abort_connection();
         }
         server.wait_for_log("disconnected unexpectedly");
         server.wait_for_log("sess-0001 session released");
         {
-            TestConn next(server.port());                         // the server went back to accept()
+            TestConn next(server.port());
             CHECK_EQ(status_of(next.hello("Ben")), std::string("OK"));
             const Json list = next.call("l", "LIST_TASKS");
-            CHECK_EQ(payload_of(list).find("count")->int_value(), 1);   // the task is still there
-            next.close();                                       
+            CHECK_EQ(payload_of(list).find("count")->int_value(), 1);
+            next.close();
         }
         server.wait_for_log("sess-0002 session released");
         CHECK(server.log_contains("sess-0002 disconnected unexpectedly"));
@@ -604,7 +602,7 @@ int main(int argc, char* argv[]) {
         CHECK_EQ(payload_of(list).find("count")->int_value(), 1);
         const Json& task = payload_of(list).find("tasks")->items()[0];
         CHECK_EQ(task.find("title")->string_value(), std::string("persist me"));
-        CHECK_EQ(task.find("claimed_by")->string_value(), std::string("Ana"));   // claims remain after QUIT (Q2)
+        CHECK_EQ(task.find("claimed_by")->string_value(), std::string("Ana"));
         again.call("q", "QUIT");
     });
 
@@ -612,11 +610,11 @@ int main(int argc, char* argv[]) {
         ServerProcess server;
         TestConn first(server.port());
         first.hello("Ana");
-        TestConn second(server.port());               // TCP connect succeeds (kernel backlog)
+        TestConn second(server.port());
         second.send_request("h2", "HELLO", "{\"display_name\":\"Ben\"}");
-        first.call("a", "CREATE_TASK", "{\"title\":\"from first\"}");   // first is still served
+        first.call("a", "CREATE_TASK", "{\"title\":\"from first\"}");
         first.call("q", "QUIT");
-        const Json r = second.read_response();         // now the server accept()s the second client
+        const Json r = second.read_response();
         CHECK_EQ(r.find("request_id")->string_value(), std::string("h2"));
         CHECK_EQ(status_of(r), std::string("OK"));
         CHECK_EQ(payload_of(r).find("session_id")->string_value(), std::string("sess-0002"));
@@ -629,7 +627,7 @@ int main(int argc, char* argv[]) {
         TestConn c(server.port());
         c.hello("Ana");
         server.process().send_signal(SIGTERM);
-        CHECK(c.next_is_eof());                        // the server closed the connection
+        CHECK(c.next_is_eof());
         const int code = server.stop();
         CHECK_EQ(code, 0);
         CHECK(server.log_contains("sess-0001 closed by server shutdown"));
@@ -667,7 +665,7 @@ int main(int argc, char* argv[]) {
     });
 
     testing::run("T-07", "server not running: client reports failure clearly, exit 1, no crash", [] {
-        const int port = find_free_port();             // nothing listens here
+        const int port = find_free_port();
         const ClientRun run = run_client({"127.0.0.1", std::to_string(port), "Ana"}, "");
         CHECK_EQ(run.exit_code, 1);
         CHECK(contains(run.output, "Could not connect"));
@@ -681,7 +679,7 @@ int main(int argc, char* argv[]) {
             const ClientRun run = run_client({"127.0.0.1", port, "Ana"}, "");
             CHECK_EQ(run.exit_code, 2);
             CHECK(contains(run.output, "invalid port"));
-            CHECK(!contains(run.output, "Connecting"));       // no connection was attempted
+            CHECK(!contains(run.output, "Connecting"));
         }
         const ClientRun name = run_client({"127.0.0.1", "5050", "bad!name"}, "");
         CHECK_EQ(name.exit_code, 2);
@@ -728,7 +726,7 @@ int main(int argc, char* argv[]) {
         server.wait_for_log("disconnected gracefully");
         CHECK(server.log_contains("CREATE_TASK success task_id=1"));
         CHECK(server.log_contains("CLAIM_TASK rejected error=NOT_FOUND task_id=9999"));
-        CHECK(!server.log_contains("Write methodology section"));     // titles are not logged
+        CHECK(!server.log_contains("Write methodology section"));
     });
 
     testing::run("X-07", "stdin ends without quit: client sends QUIT itself and exits 0", [] {
@@ -757,11 +755,11 @@ int main(int argc, char* argv[]) {
         CHECK(client.read_until("stcs> "));
         client.write_stdin("add First task\n");
         CHECK(client.read_until("Created task 1."));
-        CHECK_EQ(server.stop(), 0);                      // the server is gone now
+        CHECK_EQ(server.stop(), 0);
         client.write_stdin("list\n");
         client.read_all();
         const int status = client.wait_status();
-        CHECK(WIFEXITED(status));                        // not killed by a signal
+        CHECK(WIFEXITED(status));
         CHECK_EQ(WEXITSTATUS(status), 1);
         CHECK(contains(client.output(), "Error:"));
         CHECK(contains(client.output(), "The session has ended"));
