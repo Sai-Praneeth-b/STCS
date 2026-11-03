@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     const std::string log_path = (argc == 3) ? argv[2] : kDefaultLogPath;
 
     stcs::Logger logger;
-    logger.info("Server starting (STCS protocol v1, Phase 2: one client at a time)");
+    logger.info("Server starting (STCS protocol v1, Phase 3: multiple clients)");
     std::string log_error;
     if (logger.open_file(log_path, log_error)) {
         logger.info("Logging to " + log_path);

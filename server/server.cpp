@@ -69,7 +69,7 @@ bool Server::start(std::string& error) {
         return false;
     }
 
-    if (::listen(listener_.fd(), 5) != 0) {
+    if (::listen(listener_.fd(), 128) != 0) {
         error = std::string("listen: ") + std::strerror(errno);
         return false;
     }
@@ -85,16 +85,19 @@ bool Server::start(std::string& error) {
 }
 
 void Server::run() {
-    logger_.info("Waiting for a client connection (one active client at a time)");
+    logger_.info("Waiting for client connections (one thread per client)");
     while (true) {
         pollfd watched[2];
         watched[0] = {listener_.fd(), POLLIN, 0};
         watched[1] = {wake_read_.fd(), POLLIN, 0};
-        if (::poll(watched, 2, -1) < 0) {
+        // 1 s timeout so threads of departed clients are reaped even when idle.
+        const int ready = ::poll(watched, 2, 1000);
+        if (ready < 0) {
             if (errno == EINTR) continue;
             logger_.error(std::string("poll failed: ") + std::strerror(errno));
             break;
         }
+        reap_workers(false);
         if (watched[1].revents != 0) {
             logger_.info("Shutdown requested; stopping the server");
             break;
@@ -114,27 +117,62 @@ void Server::run() {
             continue;
         }
 
-        serve_client(Socket(client_fd), peer);
+        auto done = std::make_shared<std::atomic<bool>>(false);
+        try {
+            workers_.push_back(Worker{std::thread([this, client_fd, peer, done] {
+                                          serve_client(Socket(client_fd), peer);
+                                          done->store(true);
+                                      }),
+                                      done});
+        } catch (const std::exception& problem) {
+            // Could not start a thread: refuse this one client, keep serving the rest.
+            logger_.error(std::string("cannot start a session thread: ") + problem.what());
+            ::close(client_fd);
+        }
     }
     listener_.close_now();
+    // Every session thread also watches the wake pipe, so they are all ending now.
+    reap_workers(true);
     logger_.info("Server shutdown complete");
+}
+
+void Server::reap_workers(bool wait_all) {
+    for (auto it = workers_.begin(); it != workers_.end();) {
+        if (wait_all || it->done->load()) {
+            if (it->thread.joinable()) it->thread.join();
+            it = workers_.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void Server::serve_client(Socket client, const sockaddr_in& peer) {
     ClientSession session(sessions_.next_session_id(), format_peer_address(peer));
     sessions_.add(session.id());
-    logger_.info("Client " + session.id() + " connected from " + session.peer_address());
+    logger_.info("Client " + session.id() + " connected from " + session.peer_address() +
+                 " (active clients: " + std::to_string(sessions_.active_count()) + ")");
 
     EndReason reason = EndReason::PeerClosed;
     std::string detail;
-    while (process_incoming(client.fd(), session, reason, detail)) {
+    // A failure inside one session must never take down the other sessions.
+    try {
+        while (process_incoming(client.fd(), session, reason, detail)) {
+        }
+    } catch (const std::exception& problem) {
+        reason = EndReason::ReceiveError;
+        detail = std::string("internal error: ") + problem.what();
+    } catch (...) {
+        reason = EndReason::ReceiveError;
+        detail = "internal error";
     }
 
     log_session_end(session, reason, detail);
     session.mark_closed();
     sessions_.remove(session.id());
     client.close_now();
-    logger_.info(session.id(), "session released");
+    logger_.info(session.id(), "session released (active clients: " +
+                                   std::to_string(sessions_.active_count()) + ")");
 }
 
 bool Server::process_incoming(int client_fd, ClientSession& session, EndReason& reason,

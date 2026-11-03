@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <string>
 
 #include "shared/framing.hpp"
@@ -40,9 +41,10 @@ public:
 
     void remove(const std::string& session_id);
 
-    std::size_t active_count() const { return names_by_session_.size(); }
+    std::size_t active_count() const;
 
 private:
+    mutable std::mutex mutex_;  // guards both members below
     unsigned next_number_ = 1;
     std::map<std::string, std::string> names_by_session_;
 };

@@ -2,7 +2,11 @@
 
 #include <netinet/in.h>
 
+#include <atomic>
+#include <list>
+#include <memory>
 #include <string>
+#include <thread>
 
 #include "server/dispatcher.hpp"
 #include "server/logger.hpp"
@@ -30,7 +34,16 @@ private:
         ServerShutdown,
     };
 
+    // One worker thread per connected client ("thread per client" model).
+    struct Worker {
+        std::thread thread;
+        std::shared_ptr<std::atomic<bool>> done;
+    };
+
     void serve_client(Socket client, const sockaddr_in& peer);
+
+    // Joins workers whose client has left (or all of them when wait_all is true).
+    void reap_workers(bool wait_all);
 
     bool process_incoming(int client_fd, ClientSession& session, EndReason& reason,
                           std::string& detail);
@@ -45,6 +58,7 @@ private:
     Socket listener_;
     Socket wake_read_;
     Socket wake_write_;
+    std::list<Worker> workers_;  // touched only by the accept thread
 };
 
 }

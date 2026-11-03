@@ -50,6 +50,7 @@ bool Logger::open_file(const std::string& path, std::string& error) {
 
 void Logger::write_line(Level level, const std::string& message) {
     const std::string line = utc_timestamp_now() + " " + level_name(level) + " " + message;
+    std::lock_guard<std::mutex> lock(mutex_);
     if (file_.is_open()) {
         file_ << line << '\n';
         file_.flush();

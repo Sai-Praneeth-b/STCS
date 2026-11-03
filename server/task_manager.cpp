@@ -12,6 +12,7 @@ TaskManager::TaskManager(Clock clock) : clock_(std::move(clock)) {
 
 Task TaskManager::create_task(const std::string& title, Priority priority,
                               const std::string& created_by) {
+    std::lock_guard<std::mutex> lock(mutex_);
     Task task;
     task.task_id = next_task_id_++;
     task.title = title;
@@ -26,6 +27,7 @@ Task TaskManager::create_task(const std::string& title, Priority priority,
 
 std::vector<Task> TaskManager::list_tasks(
     const std::optional<TaskStatus>& status_filter) const {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::vector<Task> result;
     for (const auto& entry : tasks_) {
         if (!status_filter || entry.second.status == *status_filter) {
@@ -35,7 +37,13 @@ std::vector<Task> TaskManager::list_tasks(
     return result;
 }
 
+std::size_t TaskManager::size() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return tasks_.size();
+}
+
 TaskResult TaskManager::claim_task(long long task_id, const std::string& claimer) {
+    std::lock_guard<std::mutex> lock(mutex_);
     TaskResult result;
     auto found = tasks_.find(task_id);
     if (found == tasks_.end()) {
@@ -56,6 +64,7 @@ TaskResult TaskManager::claim_task(long long task_id, const std::string& claimer
 }
 
 TaskResult TaskManager::release_task(long long task_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
     TaskResult result;
     auto found = tasks_.find(task_id);
     if (found == tasks_.end()) {
@@ -76,6 +85,7 @@ TaskResult TaskManager::release_task(long long task_id) {
 }
 
 TaskResult TaskManager::complete_task(long long task_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
     TaskResult result;
     auto found = tasks_.find(task_id);
     if (found == tasks_.end()) {
@@ -95,6 +105,7 @@ TaskResult TaskManager::complete_task(long long task_id) {
 }
 
 TaskResult TaskManager::delete_task(long long task_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
     TaskResult result;
     auto found = tasks_.find(task_id);
     if (found == tasks_.end()) {

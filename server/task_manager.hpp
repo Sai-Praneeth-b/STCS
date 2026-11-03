@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -41,9 +42,13 @@ public:
 
     TaskResult delete_task(long long task_id);
 
-    std::size_t size() const { return tasks_.size(); }
+    std::size_t size() const;
 
 private:
+    // One lock guards the whole task table. Every public operation (check state,
+    // change state) runs under it, so each command is atomic: of two simultaneous
+    // claims exactly one wins and the other gets CONFLICT.
+    mutable std::mutex mutex_;
     Clock clock_;
     std::map<long long, Task> tasks_;
     long long next_task_id_ = 1;

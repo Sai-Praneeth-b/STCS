@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <mutex>
 #include <string>
 
 namespace stcs {
@@ -26,6 +27,7 @@ public:
 private:
     void write_line(Level level, const std::string& message);
 
+    std::mutex mutex_;  // one log line at a time, so concurrent sessions never interleave
     std::ofstream file_;
     bool console_echo_ = true;
 };

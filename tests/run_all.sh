@@ -2,14 +2,14 @@
 
 cd "$(dirname "$0")/.." || exit 1
 
-for program in build/test_framing build/test_units build/test_integration bin/server bin/client; do
+for program in build/test_framing build/test_units build/test_integration build/test_concurrency build/load_test bin/server bin/client; do
     if [ ! -x "$program" ]; then
         echo "Missing $program -- run 'make all tests' first." >&2
         exit 1
     fi
 done
 
-echo "STCS Phase 2 test run"
+echo "STCS Phase 3 test run"
 echo "Date:     $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "Compiler: $(${CXX:-g++} --version | head -n 1)"
 echo "System:   $(uname -sr)"
@@ -27,6 +27,14 @@ echo
 
 echo "=== Suite 3: integration tests (real server and client over TCP) ==="
 ./build/test_integration bin || status=1
+echo
+
+echo "=== Suite 4: concurrency and reliability tests (several clients, one server) ==="
+./build/test_concurrency bin || status=1
+echo
+
+echo "=== Suite 5: load test (20 clients x 100 requests, local) ==="
+./build/load_test bin 20 100 || status=1
 echo
 
 if [ "$status" -eq 0 ]; then

@@ -96,8 +96,9 @@ class node_framing,node_protocol,node_json,node_field_validation,node_utf8,node_
 class node_log_file toneIndigo
 ```
 
-**Phase 2 (this deliverable) is one client + one server.** The server
-deliberately serves one client at a time.
+**Phase 3 (this deliverable) is multiple clients + one server.** The server
+runs one thread per connected client and protects all shared data with locks.
+The client program and the wire protocol are unchanged from Phase 2.
 
 ## Features
 
@@ -113,17 +114,41 @@ deliberately serves one client at a time.
 * Timestamped server log (`logs/server.log`), graceful and abrupt disconnect
   handling, clean shutdown on Ctrl-C / SIGTERM.
 * Plain-text client interface, within 80 columns.
+* **Phase 3:** many simultaneous clients (tested with 100), one thread per
+  client, unique session id per connection, shared task list protected by a
+  mutex, atomic conflict handling (two clients claiming one task: one wins,
+  the other gets `CONFLICT`), a client crash or bad request affects only its
+  own session, session resources freed on exit, thread-safe log, and graceful
+  shutdown that closes every session and joins every thread.
 
 ## Architecture summary
 
 ```
 shared/   utf8, json, framing, protocol, validation, net, timeutil   (both programs)
+          (unchanged in Phase 3)
 server/   logger, session, task_manager, request_validation,
           dispatcher, server (TCP listener + session loop), main
 client/   connection, input_parser, display, client_app, main
-tests/    test_framing, test_units, test_integration, run_all.sh
+tests/    test_framing, test_units, test_integration,
+          test_concurrency (Phase 3), load_test (Phase 3), run_all.sh
 docs/     Phase 2 report, protocol spec, diagrams, sample log, test results
 ```
+
+Concurrency model (Phase 3): the main thread only runs `poll()` + `accept()`
+and starts one `std::thread` per client (`Server::serve_client`). Each thread
+owns its `ClientSession` (socket, framer buffer, state), so nothing
+per-client is shared. Shared objects and their locks:
+
+| Shared object | Lock | Why |
+|---|---|---|
+| `TaskManager` (task table, id counter) | one mutex, held for each whole operation | check-then-change (e.g. claim) is atomic |
+| `SessionRegistry` (session ids, display names) | one mutex | unique ids; two equal `HELLO` names cannot both win |
+| `Logger` (log file + console) | one mutex | one log line at a time, never interleaved |
+
+No code ever holds two of these locks at once (the dispatcher calls them one
+after another), so deadlock is not possible. Shutdown uses a self-pipe: SIGINT
+or SIGTERM writes a byte that every session thread and the accept loop
+`poll()` on.
 
 Request path on the server:
 `recv()` -> `MessageFramer` -> envelope + payload validation ->
@@ -133,9 +158,11 @@ See `docs/STCS_Phase2_Report.docx` section 2 for diagrams.
 
 ## Requirements
 
-* Linux or macOS, a C++17 compiler (`g++` 7+ or `clang++`), and `make`.
+* Linux or macOS, a C++17 compiler (`g++` 7+ or `clang++`) with pthreads,
+  and `make`.
 * No third-party libraries. (Python 3 is *not* needed.)
-* Developed and tested with g++ 13.3 on Linux 6.x.
+* Developed and tested with g++ 13.3 on Linux 6.x. No server port limit other
+than the operating system's open-file and thread limits.
 
 ## Compilation
 
@@ -184,13 +211,15 @@ Terminal 1:
 
 ```
 $ ./bin/server 5050
-2026-10-04T15:01:17Z INFO Server starting (STCS protocol v1, Phase 2: one client at a time)
-2026-10-04T15:01:17Z INFO Logging to logs/server.log
-2026-10-04T15:01:17Z INFO Server listening on 0.0.0.0:5050
-2026-10-04T15:01:17Z INFO Waiting for a client connection (one active client at a time)
+2026-10-30T15:01:17Z INFO Server starting (STCS protocol v1, Phase 3: multiple clients)
+2026-10-30T15:01:17Z INFO Logging to logs/server.log
+2026-10-30T15:01:17Z INFO Server listening on 0.0.0.0:5050
+2026-10-30T15:01:17Z INFO Waiting for client connections (one thread per client)
+2026-10-30T15:01:20Z INFO Client sess-0001 connected from 127.0.0.1:45290 (active clients: 1)
 ```
 
-Terminal 2:
+Terminal 2 (start more terminals the same way, e.g. `./bin/client
+127.0.0.1 5050 Ben`, to see several clients at once):
 
 ```
 $ ./bin/client 127.0.0.1 5050 Ana
@@ -217,9 +246,17 @@ stcs> quit
 Session closed. Goodbye.
 ```
 
-A longer, real, captured session is in `docs/demo_client_ana.txt`
-(and `docs/demo_client_ben.txt`), with the matching server log in
-`docs/sample_server.log`.
+A real three-client run (Ana, Ben, Cara: a claim conflict, an invalid request,
+one client killed without `quit`, the others carrying on, graceful shutdown) is
+captured in `docs/demo_client_ana.txt`, `docs/demo_client_ben.txt`,
+`docs/demo_client_cara.txt`, with the matching server log in
+`docs/sample_server.log` (also `logs/sample-server.log`).
+
+Conflict rules (also tested): `claim` on a task someone already holds gives
+`CONFLICT` naming the owner; any command on a task another client deleted gives
+`NOT_FOUND`; `done` on a finished task gives `CONFLICT`; each command is atomic.
+If a client disconnects, its claimed tasks stay claimed (use `release`); its
+display name becomes free again.
 
 ## Commands (client prompt)
 
@@ -252,8 +289,9 @@ A longer, real, captured session is in `docs/demo_client_ana.txt`
   `INVALID_FIELD`, `NOT_FOUND`, `CONFLICT`, `INVALID_STATE`, `NAME_IN_USE`,
   `MESSAGE_TOO_LARGE`, `SESSION_ERROR`, `SERVER_ERROR`.
 * A client that disappears (QUIT-less close, crash, reset) is detected by
-  `recv()` returning 0 or failing; the session is released and the server
-  returns to listening. Tasks stay in memory for the life of the server.
+  `recv()` returning 0 or failing; only that session is released (socket
+  closed, name freed, thread ended) and every other client carries on. Tasks
+  stay in memory for the life of the server.
 
 
 ## Testing
@@ -262,20 +300,34 @@ A longer, real, captured session is in `docs/demo_client_ana.txt`
 make check
 ```
 
-runs three suites (a clean run takes a few seconds; it needs free local TCP
-ports):
+runs five suites (about 10 seconds; it needs free local TCP ports):
 
 1. `build/test_framing` - framing unit tests (no sockets).
 2. `build/test_units` - JSON, validation, envelope, task manager, session
    registry, request dispatcher (driven in-process), client display/input.
 3. `build/test_integration` - starts the real `bin/server` and `bin/client`
    and tests over TCP: all nine commands, error cases, partial/coalesced
-   messages, abrupt disconnects, signals, and client behaviour.
+   messages, abrupt disconnects, signals, and client behaviour (Phase 1-2).
+4. `build/test_concurrency` - **Phase 3**: several clients at once against a
+   real server. `C-01..C-12`: simultaneous connects, different operations,
+   two clients modifying shared data, claim races, delete-while-viewing,
+   duplicate names, abrupt disconnect, invalid requests, repeated
+   connect/disconnect, rapid pipelined messages, partial messages, several
+   messages in one write. `R-01..R-04`: missing data, invalid state
+   transitions, graceful shutdown with 3 clients, restart, log integrity.
+5. `build/load_test` - **Phase 3**: 20 clients x 100 requests against a local
+   server it starts itself; prints requests, duration, successes, failures and
+   response times. Run it alone with `make load`, or choose the size:
+   `./build/load_test bin <clients> <requests_per_client>`.
 
-Each test prints `PASS`/`FAIL` with an ID that matches the Phase 1 test plan
-(T-01...T-17) or the Phase 2 additions (U-..., X-...). The saved output of
-a real run is `docs/test_results.txt`; the test report is in the Phase 2
-report, section 8.
+Each test prints `PASS`/`FAIL` with an ID. The saved output of a real run is
+`docs/test_results.txt` (90 tests, all pass, plus the load test).
+
+Optional extra check (not part of `make check`): build the server with
+`g++ -std=c++17 -O1 -g -pthread -fsanitize=thread -I. -o /tmp/tsan/bin/server
+server/*.cpp shared/*.cpp` and run `build/test_concurrency /tmp/tsan/bin`;
+ThreadSanitizer reported no data races (and does report one if the task lock is
+removed).
 
 You can also try errors by hand:
 
@@ -295,3 +347,28 @@ fragment, CRLF, blank lines, 8192/8193-byte lines, 48 KiB with no newline, and
 connection. TCP may coalesce small writes, so the socket tests assert
 correctness of the result (exactly one reply per request, in order, no
 duplicates), while the unit tests control the chunk boundaries exactly.
+
+## Known limitations
+
+* Thread per client: fine for tens to low hundreds of clients, not thousands
+  (one stack per thread, no client cap).
+* Tasks live only in memory: a server restart starts with an empty list.
+* One global lock for the task table and one for the log: simple and safe, but
+  all clients queue on them under heavy load (a `list` copies every task).
+* Request-response only: a client sees other users' changes when it runs
+  `list` again; there is no server push.
+* No authentication: display names identify users but are not secret.
+* Console logging blocks if the server's stdout is a pipe nobody reads (the
+  log lock is held during the write).
+* No idle timeout: a silent but connected client keeps its thread.
+
+## Attribution
+
+* No third-party libraries; only the C++ standard library and POSIX sockets /
+  pthreads. JSON, framing and validation are our own code (`shared/`).
+* AI assistance: the Phase 3 changes (adding mutexes, the thread-per-client
+  accept loop, `tests/test_concurrency.cpp`, `tests/load_test.cpp` and this
+  README update) were written with help from Claude (Anthropic). They touch
+  only `server/` (about 100 changed lines) and `tests/`; `shared/` and
+  `client/` are unchanged from Phase 2. (AI use in Phases 1-2 is described in
+  those reports.)

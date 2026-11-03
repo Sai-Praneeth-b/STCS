@@ -1,5 +1,5 @@
 CXX      ?= g++
-CXXFLAGS ?= -std=c++17 -O2 -g -Wall -Wextra -Wpedantic
+CXXFLAGS ?= -std=c++17 -O2 -g -Wall -Wextra -Wpedantic -pthread
 CPPFLAGS += -I. -MMD -MP
 
 BUILD := build
@@ -16,9 +16,10 @@ SHARED_OBJ := $(SHARED_SRC:%.cpp=$(BUILD)/%.o)
 SERVER_OBJ := $(SERVER_SRC:%.cpp=$(BUILD)/%.o)
 CLIENT_OBJ := $(CLIENT_SRC:%.cpp=$(BUILD)/%.o)
 
-TEST_PROGRAMS := $(BUILD)/test_framing $(BUILD)/test_units $(BUILD)/test_integration
+TEST_PROGRAMS := $(BUILD)/test_framing $(BUILD)/test_units $(BUILD)/test_integration \
+                $(BUILD)/test_concurrency $(BUILD)/load_test
 
-.PHONY: all tests check clean
+.PHONY: all tests check load clean
 all: $(BIN)/server $(BIN)/client
 
 $(BIN)/server: $(BUILD)/server/main.o $(SERVER_OBJ) $(SHARED_OBJ)
@@ -39,6 +40,15 @@ $(BUILD)/test_units: $(BUILD)/tests/test_units.o $(SERVER_OBJ) $(CLIENT_OBJ) $(S
 
 $(BUILD)/test_integration: $(BUILD)/tests/test_integration.o $(SHARED_OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(BUILD)/test_concurrency: $(BUILD)/tests/test_concurrency.o $(SHARED_OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(BUILD)/load_test: $(BUILD)/tests/load_test.o $(SHARED_OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+load: all tests
+	./build/load_test bin 20 100
 
 check: all tests
 	sh tests/run_all.sh

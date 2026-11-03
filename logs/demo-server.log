@@ -1,0 +1,5 @@
+2026-11-03T04:35:30Z INFO Logging to logs/demo-server.log
+2026-11-03T04:35:30Z INFO Server listening on 0.0.0.0:5050
+2026-11-03T04:35:30Z INFO Waiting for client connections (one thread per client)
+2026-11-03T04:35:40Z INFO Client sess-0001 connected from 127.0.0.1:49706 (active clients: 1)
+2026-11-03T04:35:40Z INFO sess-0001 HELLO success name="Ana"
