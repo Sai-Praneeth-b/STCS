@@ -123,7 +123,7 @@ The client program and the wire protocol are unchanged from Phase 2.
 * TCP sockets only (`socket`, `bind`, `listen`, `accept`, `connect`, `send`,
   `recv`, `close`), no HTTP or networking framework.
 * Newline-delimited JSON protocol (the Phase 1 "STCS v1" protocol), with a
-  framing layer that handles partial reads, several messages in one read, and
+  framing layer that handles partial reads, several messages in one read and
   a message plus a trailing fragment. No `sleep()` or timing assumptions.
 * All nine Phase 1 commands: `HELLO`, `HELP`, `LIST_TASKS`, `CREATE_TASK`,
   `CLAIM_TASK`, `RELEASE_TASK`, `COMPLETE_TASK`, `DELETE_TASK`, `QUIT`.
@@ -136,7 +136,7 @@ The client program and the wire protocol are unchanged from Phase 2.
   client, unique session id per connection, shared task list protected by a
   mutex, atomic conflict handling (two clients claiming one task: one wins,
   the other gets `CONFLICT`), a client crash or bad request affects only its
-  own session, session resources freed on exit, thread-safe log, and graceful
+  own session, session resources freed on exit, thread-safe log and graceful
   shutdown that closes every session and joins every thread.
 
 ## Architecture summary
@@ -333,7 +333,7 @@ free local TCP ports):
    registry, request dispatcher (driven in-process), client display/input.
 3. `build/test_integration` - starts the real `bin/server` and `bin/client`
    and tests over TCP: all nine commands, error cases, partial/coalesced
-   messages, abrupt disconnects, signals, and client behaviour (Phase 1-2).
+   messages, abrupt disconnects, signals and client behaviour (Phase 1-2).
 4. `build/test_concurrency` - **Phase 3**: several clients at once against a
    real server. `C-01..C-12`: simultaneous connects, different operations,
    two clients modifying shared data, claim races, delete-while-viewing,
@@ -368,7 +368,7 @@ stcs> claim 9999                            -> NOT_FOUND
 
 `tests/test_framing.cpp` (no sockets, no sleeps) feeds the framer one byte at
 a time, in three pieces, two messages per feed, two messages plus a trailing
-fragment, CRLF, blank lines, 8192/8193-byte lines, 48 KiB with no newline, and
+fragment, CRLF, blank lines, 8192/8193-byte lines, 48 KiB with no newline and
 200 random chunkings of a message stream. `tests/test_integration.cpp`
 (`T-13`, `T-14`, `U-I2`, `U-I3`) repeats the key cases over a real TCP
 connection. TCP may coalesce small writes, so the socket tests assert
@@ -400,10 +400,10 @@ duplicates), while the unit tests control the chunk boundaries exactly.
 No third-party libraries; only the C++ standard library and POSIX sockets /
   pthreads. JSON, framing and validation are our own code (`shared/`).
 
-Three different AI tools were used are UMGPT, Claude, and Gemini. All these tools were useful for various purposes.
+Three different AI tools were used are UMGPT, Claude and Gemini. All these tools were useful for various purposes.
 
 * UMGPT: Primarily used for technical explanations, networking and for implementing certain parts of the program.
 
-* Claude: Most useful for handling the hardest parts, mainly Phase 3 Concurrency. Helped me understand the implementation of the mutex lock, the while loop that allowed accepting only one client at a time, concurrency and reliability testing cases creation, testing code, and load testing.
+* Claude: Most useful for handling the hardest parts, mainly Phase 3 Concurrency. Helped me understand the implementation of the mutex lock, the while loop that allowed accepting only one client at a time, concurrency and reliability testing cases creation, testing code and load testing.
 
 * Gemini: Secondary tool for finding additional information and solutions
