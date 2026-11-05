@@ -1,4 +1,22 @@
+# Shared Task Coordination Service (STCS) - Phase 3
+
 ## Link-to-Repo: **https://github.com/Sai-Praneeth-b/STCS**
+
+## Project name and purpose
+
+The **Shared Task Coordination Service (STCS)** is a TCP client-server
+application written in C++17 for small teams that share one task list. Users
+can create tasks, list them, claim work, release it, mark it done and delete
+tasks. The main goal is that two users can never both claim the same open
+task: the server owns the task list and decides every conflict (the first
+claim wins, the other client gets a `CONFLICT` reply). Phase 3 is the final
+version: **many clients connect to one server at the same time.**
+Course: CIS 527 - Computer Networks.
+
+## Team members
+
+This is an individual project: **Sai Praneeth Bhattu** (protocol design,
+implementation, tests, documentation).
 
 ## System Architecture
 
@@ -131,7 +149,12 @@ server/   logger, session, task_manager, request_validation,
 client/   connection, input_parser, display, client_app, main
 tests/    test_framing, test_units, test_integration,
           test_concurrency (Phase 3), load_test (Phase 3), run_all.sh
-docs/     Phase 2 report, protocol spec, diagrams, sample log, test results
+docs/     Phase 3 report (STCS_Phase3_Final_Report.docx), protocol overview
+          (STCS Phases Info.md), protocol-examples.json, diagrams/,
+          client-ana.txt, client-ben.txt, client-cara.txt,
+          sample-server.log, test-results.txt
+logs/     sample-server.log (copy of docs/sample-server.log); the server and the
+          tests write their own log files here at run time
 ```
 
 Concurrency model (Phase 3): the main thread only runs `poll()` + `accept()`
@@ -154,9 +177,9 @@ Request path on the server:
 `recv()` -> `MessageFramer` -> envelope + payload validation ->
 `RequestDispatcher` -> `TaskManager` (in-memory task store) -> response ->
 `send_all()`; every step is logged by `Logger`.
-See `docs/STCS_Phase2_Report.docx` section 2 for diagrams.
+See `docs/STCS_Phase3_Final_Report.docx` section 2 (and `docs/diagrams/`) for diagrams.
 
-## Requirements
+## Required software
 
 * Linux or macOS, a C++17 compiler (`g++` 7+ or `clang++`) with pthreads,
   and `make`.
@@ -164,7 +187,7 @@ See `docs/STCS_Phase2_Report.docx` section 2 for diagrams.
 * Developed and tested with g++ 13.3 on Linux 6.x. No server port limit other
 than the operating system's open-file and thread limits.
 
-## Compilation
+## Build instructions
 
 From the project root:
 
@@ -178,14 +201,14 @@ make clean      # removes build products, binaries and logs
 (The binaries are in `bin/` because the source directories are already named
 `server/` and `client/`.)
 
-## Starting the server
+## Server startup instructions
 
 ```
 ./bin/server <port> [log_file]
 ./bin/server 5050
 ```
 
-## Starting the client
+## Client startup instructions
 
 ```
 ./bin/client <host> <port> <display_name>
@@ -206,6 +229,8 @@ Exit codes: `0` normal; `1` runtime failure (cannot connect, connection lost,
 cannot bind); `2` bad command-line arguments.
 
 ## Example interaction
+
+The timestamps below are illustrative.
 
 Terminal 1:
 
@@ -235,7 +260,7 @@ Created task 1.
   Priority:   HIGH
   Status:     OPEN
   Claimed by: -
-  Created:    by Ana at 2026-10-04T15:01:17Z
+  Created:    by Ana at 2026-10-30T15:01:17Z
 stcs> claim 1
 Claimed task 1.
   ...
@@ -248,9 +273,9 @@ Session closed. Goodbye.
 
 A real three-client run (Ana, Ben, Cara: a claim conflict, an invalid request,
 one client killed without `quit`, the others carrying on, graceful shutdown) is
-captured in `docs/demo_client_ana.txt`, `docs/demo_client_ben.txt`,
-`docs/demo_client_cara.txt`, with the matching server log in
-`docs/sample_server.log` (also `logs/sample-server.log`).
+captured in `docs/client-ana.txt`, `docs/client-ben.txt` and
+`docs/client-cara.txt`, with the matching server log in
+`docs/sample-server.log` (also `logs/sample-server.log`).
 
 Conflict rules (also tested): `claim` on a task someone already holds gives
 `CONFLICT` naming the owner; any command on a task another client deleted gives
@@ -294,13 +319,14 @@ display name becomes free again.
   stay in memory for the life of the server.
 
 
-## Testing
+## Test instructions
 
 ```
 make check
 ```
 
-runs five suites (about 10 seconds; it needs free local TCP ports):
+runs five suites (a few seconds, about 2 s on the verification machine; it needs
+free local TCP ports):
 
 1. `build/test_framing` - framing unit tests (no sockets).
 2. `build/test_units` - JSON, validation, envelope, task manager, session
@@ -321,7 +347,8 @@ runs five suites (about 10 seconds; it needs free local TCP ports):
    `./build/load_test bin <clients> <requests_per_client>`.
 
 Each test prints `PASS`/`FAIL` with an ID. The saved output of a real run is
-`docs/test_results.txt` (90 tests, all pass, plus the load test).
+`docs/test-results.txt` (90 tests, all pass, plus the load test; recorded on
+2026-11-04 from `make clean` followed by `make -j1 check`).
 
 Optional extra check (not part of `make check`): build the server with
 `g++ -std=c++17 -O1 -g -pthread -fsanitize=thread -I. -o /tmp/tsan/bin/server
@@ -350,8 +377,11 @@ duplicates), while the unit tests control the chunk boundaries exactly.
 
 ## Known limitations
 
-* Thread per client: fine for tens to low hundreds of clients, not thousands
-  (one stack per thread, no client cap).
+* Thread per client: fine for tens to low hundreds of clients, not thousands.
+  The server sets no fixed client limit; how many clients it can serve at once
+  depends on system resources (memory, thread and file-descriptor limits),
+  because every client needs its own thread and stack. 100 clients were
+  load-tested; larger numbers were not.
 * Tasks live only in memory: a server restart starts with an empty list.
 * One global lock for the task table and one for the log: simple and safe, but
   all clients queue on them under heavy load (a `list` copies every task).
@@ -361,8 +391,11 @@ duplicates), while the unit tests control the chunk boundaries exactly.
 * Console logging blocks if the server's stdout is a pipe nobody reads (the
   log lock is held during the write).
 * No idle timeout: a silent but connected client keeps its thread.
+* A display name is freed just after the session ends, not before the `QUIT`
+  reply is sent. A client that reconnects with the same name in that instant
+  can get `NAME_IN_USE` once and should retry.
 
-## Attribution
+## External library and resource attribution
 
 * No third-party libraries; only the C++ standard library and POSIX sockets /
   pthreads. JSON, framing and validation are our own code (`shared/`).
@@ -371,4 +404,8 @@ duplicates), while the unit tests control the chunk boundaries exactly.
   README update) were written with help from Claude (Anthropic). They touch
   only `server/` (about 100 changed lines) and `tests/`; `shared/` and
   `client/` are unchanged from Phase 2. (AI use in Phases 1-2 is described in
-  those reports.)
+  those reports. For the final submission, Claude also helped review the project
+  and prepare the corrections: one signal-handler ordering fix in
+  `server/main.cpp` (handlers are installed before the server reports that it
+  is listening), test synchronisation fixes in `tests/`, and the documentation
+  corrections. All suites were re-run afterwards.)
