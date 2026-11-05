@@ -397,12 +397,13 @@ duplicates), while the unit tests control the chunk boundaries exactly.
 
 ## External library and resource attribution
 
-* No third-party libraries; only the C++ standard library and POSIX sockets /
+No third-party libraries; only the C++ standard library and POSIX sockets /
   pthreads. JSON, framing and validation are our own code (`shared/`).
-* Three different AI tools were used are UMGPT, Claude, and Gemini. All these tools were useful for various purposes.
 
-	UMGPT: Primarily used for technical explanations, networking and for implementing certain parts of the program.
+Three different AI tools were used are UMGPT, Claude, and Gemini. All these tools were useful for various purposes.
 
-	Claude: Most useful for handling the hardest parts, mainly Phase 3 Concurrency. Helped me understand the implementation of the mutex lock, the while loop that allowed accepting only one client at a time, concurrency and reliability testing cases creation, testing code, and load testing.
+* UMGPT: Primarily used for technical explanations, networking and for implementing certain parts of the program.
 
-	Gemini: Secondary tool for finding additional information and solutions
+* Claude: Most useful for handling the hardest parts, mainly Phase 3 Concurrency. Helped me understand the implementation of the mutex lock, the while loop that allowed accepting only one client at a time, concurrency and reliability testing cases creation, testing code, and load testing.
+
+* Gemini: Secondary tool for finding additional information and solutions
