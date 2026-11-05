@@ -399,13 +399,10 @@ duplicates), while the unit tests control the chunk boundaries exactly.
 
 * No third-party libraries; only the C++ standard library and POSIX sockets /
   pthreads. JSON, framing and validation are our own code (`shared/`).
-* AI assistance: the Phase 3 changes (adding mutexes, the thread-per-client
-  accept loop, `tests/test_concurrency.cpp`, `tests/load_test.cpp` and this
-  README update) were written with help from Claude (Anthropic). They touch
-  only `server/` (about 100 changed lines) and `tests/`; `shared/` and
-  `client/` are unchanged from Phase 2. (AI use in Phases 1-2 is described in
-  those reports. For the final submission, Claude also helped review the project
-  and prepare the corrections: one signal-handler ordering fix in
-  `server/main.cpp` (handlers are installed before the server reports that it
-  is listening), test synchronisation fixes in `tests/`, and the documentation
-  corrections. All suites were re-run afterwards.)
+* Three different AI tools were used are UMGPT, Claude, and Gemini. All these tools were useful for various purposes.
+
+	UMGPT: Primarily used for technical explanations, networking and for implementing certain parts of the program.
+
+	Claude: Most useful for handling the hardest parts, mainly Phase 3 Concurrency. Helped me understand the implementation of the mutex lock, the while loop that allowed accepting only one client at a time, concurrency and reliability testing cases creation, testing code, and load testing.
+
+	Gemini: Secondary tool for finding additional information and solutions
