@@ -1,0 +1,33 @@
+Connecting to 127.0.0.1:5050 ...
+Connected.
+Session sess-0001 started as 'Ana'.
+Type 'help' for a list of commands.
+stcs> add Write methodology section
+Created task 1.
+  Title:      Write methodology section
+  Priority:   MEDIUM
+  Status:     OPEN
+  Claimed by: -
+  Created:    by Ana at 2026-10-30T23:58:11Z
+stcs> add Draft abstract
+Created task 2.
+  Title:      Draft abstract
+  Priority:   MEDIUM
+  Status:     OPEN
+  Claimed by: -
+  Created:    by Ana at 2026-10-30T23:58:11Z
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  MEDIUM  CLAIMED  Ben             Write methodology section
+ 2  MEDIUM  CLAIMED  Cara            Draft abstract
+2 tasks
+stcs> done 2
+Marked task 2 as done.
+  Title:      Draft abstract
+  Priority:   MEDIUM
+  Status:     DONE
+  Claimed by: Cara
+  Created:    by Ana at 2026-10-30T23:58:11Z
+stcs> quit
+Session closed. Goodbye.
