@@ -1,0 +1,32 @@
+Connecting to 127.0.0.1:5050 ...
+Connected.
+Session sess-0003 started as 'Ben'.
+Type 'help' for a list of commands.
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  MEDIUM  OPEN     -               Write methodology section
+ 2  MEDIUM  OPEN     -               Draft abstract
+2 tasks
+stcs> claim 1
+Claimed task 1.
+  Title:      Write methodology section
+  Priority:   MEDIUM
+  Status:     CLAIMED
+  Claimed by: Ben
+  Created:    by Ana at 2026-10-30T23:58:11Z
+stcs> raw MAKE_COFFEE
+Error [UNKNOWN_COMMAND]: Unknown command 'MAKE_COFFEE'. Send HELP to list the
+  supported commands.
+  Hint: Type 'help' to see the supported commands.
+stcs> claim 9999
+Error [NOT_FOUND]: No task exists with id 9999.
+  Hint: Use 'list' to see which tasks exist.
+stcs> list
+ID  PRIO    STATUS   OWNER           TITLE
+--  ------  -------  --------------  -------------------------------------------
+ 1  MEDIUM  CLAIMED  Ben             Write methodology section
+ 2  MEDIUM  DONE     Cara            Draft abstract
+2 tasks
+stcs> quit
+Session closed. Goodbye.

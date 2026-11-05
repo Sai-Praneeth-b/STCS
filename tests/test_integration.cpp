@@ -302,6 +302,7 @@ int main(int argc, char* argv[]) {
             c.close();
         }
         server.wait_for_log("bytes of an incomplete message discarded");
+        server.wait_for_log("sess-0001 session released");   // the name is freed only after this line
         TestConn next(server.port());
         CHECK_EQ(status_of(next.hello("Ana")), std::string("OK"));
         next.call("q", "QUIT");

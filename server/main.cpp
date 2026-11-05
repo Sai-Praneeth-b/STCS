@@ -64,13 +64,17 @@ int main(int argc, char* argv[]) {
     stcs::RequestDispatcher dispatcher(tasks, sessions, logger);
     stcs::Server server(port, sessions, dispatcher, logger);
 
+    // Install handlers before start() logs "Server listening": a SIGINT/SIGTERM that
+    // arrives right after that line must trigger graceful shutdown, not the default
+    // action. (request_shutdown() ignores signals until the wake pipe exists.)
+    install_signal_handlers();
+
     std::string start_error;
     if (!server.start(start_error)) {
         logger.error("Cannot start server: " + start_error);
         return 1;
     }
 
-    install_signal_handlers();
     server.run();
     return 0;
 }

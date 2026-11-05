@@ -1,0 +1,15 @@
+Connecting to 127.0.0.1:5050 ...
+Connected.
+Session sess-0002 started as 'Cara'.
+Type 'help' for a list of commands.
+stcs> claim 1
+Error [CONFLICT]: Task 1 is already claimed by Ben.
+  Hint: Use 'list' to see the current owner and status.
+stcs> claim 2
+Claimed task 2.
+  Title:      Draft abstract
+  Priority:   MEDIUM
+  Status:     CLAIMED
+  Claimed by: Cara
+  Created:    by Ana at 2026-10-30T23:58:11Z
+stcs> 

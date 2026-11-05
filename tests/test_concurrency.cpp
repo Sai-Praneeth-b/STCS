@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
         b.call("k", "CLAIM_TASK", id_payload(1));
         b.send_raw("{\"version\":1,\"type\":\"REQ");   // dies in the middle of a message
         b.abort_connection();
-        server.wait_for_log("disconnected unexpectedly");
+        server.wait_for_log("session released (active clients: 2)");   // Ben's name is freed here
         CHECK_EQ(status_of(a.call("t2", "CREATE_TASK", title_payload("after crash"))), std::string("OK"));
         CHECK_EQ(list_count(c, "l"), 2);
         TestConn b2(server.port());                      // Ben comes back with the same name
@@ -251,8 +251,11 @@ int main(int argc, char* argv[]) {
         keeper.hello("Keeper");
         for (int i = 0; i < 40; ++i) {
             TestConn c(server.port());
-            CHECK_EQ(status_of(c.hello("Loop")), std::string("OK"));   // same name reused each time
+            const Json hello = c.hello("Loop");
+            CHECK_EQ(status_of(hello), std::string("OK"));   // same name reused each time
+            const std::string sid = payload_of(hello).find("session_id")->string_value();
             c.call("q", "QUIT");
+            server.wait_for_log(sid + " session released");  // the name is freed after the QUIT reply
         }
         for (int i = 0; i < 20; ++i) {
             TestConn c(server.port());
@@ -268,7 +271,7 @@ int main(int argc, char* argv[]) {
         });
         CHECK_EQ(status_of(keeper.call("t", "CREATE_TASK", title_payload("still alive"))), std::string("OK"));
         keeper.call("q", "QUIT");
-        server.wait_for_log("sess-0001 session released (active clients: 0)");
+        server.wait_for_log("sess-0001 session released");
     });
 
     testing::run("C-10", "rapid submission: 3 clients each pipeline 100 requests in one write", [] {
