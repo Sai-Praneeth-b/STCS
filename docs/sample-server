@@ -1,0 +1,30 @@
+2026-10-30T23:58:10Z INFO Logging to /mnt/c/Users/saipr/Desktop/phase 3/STCS_Phase3/p3/docs/sample-server.log
+2026-10-30T23:58:10Z INFO Server listening on 0.0.0.0:5050
+2026-10-30T23:58:10Z INFO Waiting for client connections (one thread per client)
+2026-10-30T23:58:10Z INFO Client sess-0001 connected from 127.0.0.1:60896 (active clients: 1)
+2026-10-30T23:58:10Z INFO sess-0001 HELLO success name="Ana"
+2026-10-30T23:58:10Z INFO Client sess-0002 connected from 127.0.0.1:60902 (active clients: 2)
+2026-10-30T23:58:10Z INFO sess-0002 HELLO success name="Cara"
+2026-10-30T23:58:10Z INFO Client sess-0003 connected from 127.0.0.1:60906 (active clients: 3)
+2026-10-30T23:58:10Z INFO sess-0003 HELLO success name="Ben"
+2026-10-30T23:58:11Z INFO sess-0001 CREATE_TASK success task_id=1
+2026-10-30T23:58:11Z INFO sess-0001 CREATE_TASK success task_id=2
+2026-10-30T23:58:11Z INFO sess-0003 LIST_TASKS success count=2
+2026-10-30T23:58:11Z INFO sess-0003 CLAIM_TASK success task_id=1
+2026-10-30T23:58:12Z WARN sess-0002 CLAIM_TASK rejected error=CONFLICT task_id=1
+2026-10-30T23:58:12Z INFO sess-0002 CLAIM_TASK success task_id=2
+2026-10-30T23:58:12Z INFO sess-0001 LIST_TASKS success count=2
+2026-10-30T23:58:12Z WARN sess-0003 invalid request command="MAKE_COFFEE" error=UNKNOWN_COMMAND field=command
+2026-10-30T23:58:13Z WARN sess-0003 CLAIM_TASK rejected error=NOT_FOUND task_id=9999
+2026-10-30T23:58:13Z WARN sess-0002 disconnected unexpectedly (connection closed without QUIT)
+2026-10-30T23:58:13Z INFO sess-0002 session released (active clients: 2)
+2026-10-30T23:58:13Z INFO sess-0001 COMPLETE_TASK success task_id=2
+2026-10-30T23:58:14Z INFO sess-0003 LIST_TASKS success count=2
+2026-10-30T23:58:14Z INFO sess-0003 QUIT success
+2026-10-30T23:58:14Z INFO sess-0003 disconnected gracefully
+2026-10-30T23:58:14Z INFO sess-0003 session released (active clients: 1)
+2026-10-30T23:58:14Z INFO sess-0001 QUIT success
+2026-10-30T23:58:14Z INFO sess-0001 disconnected gracefully
+2026-10-30T23:58:14Z INFO sess-0001 session released (active clients: 0)
+2026-10-30T23:58:15Z INFO Shutdown requested; stopping the server
+2026-10-30T23:58:15Z INFO Server shutdown complete
