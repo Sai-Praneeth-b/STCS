@@ -1,5 +1,8 @@
 # Shared Task Coordination Service (STCS) - Phase 3
 
+**Course:** CIS 527 - Computer Networks  
+**Student:** Sai Praneeth Bhattu  
+
 ## Link-to-Repo: **https://github.com/Sai-Praneeth-b/STCS**
 
 ## Project name and purpose
